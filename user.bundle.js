@@ -51280,9 +51280,9 @@ webpackJsonp([0],[
 	//                template: require('./content.tpl.html')
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(100);
+	                         var template = __webpack_require__(100);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -51341,9 +51341,9 @@ webpackJsonp([0],[
 
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(124);
+	                         var template = __webpack_require__(124);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -51394,9 +51394,9 @@ webpackJsonp([0],[
 
 
 	            templateProvider: ['$q', function ($q) {
-	                let deferred = $q.defer();
+	                 var deferred = $q.defer();
 	                __webpack_require__.e/* nsure */(1, function () {
-	                    let template = __webpack_require__(104);
+	                     var template = __webpack_require__(104);
 	                    deferred.resolve(template);
 	                });
 	                return deferred.promise;
@@ -51491,9 +51491,9 @@ webpackJsonp([0],[
 	//                template: require('./allusers.tpl.html'),
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(123);
+	                         var template = __webpack_require__(123);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -52801,9 +52801,9 @@ webpackJsonp([0],[
 	//					template: require('./content.tpl.html')
 
 	            templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(127);
+	                             var template = __webpack_require__(127);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -52910,9 +52910,9 @@ webpackJsonp([0],[
 	//                template: require('./content.tpl.html')
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(138);
+	                         var template = __webpack_require__(138);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -53320,9 +53320,9 @@ webpackJsonp([0],[
 	//                template: require('./content.tpl.html')
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(154);
+	                         var template = __webpack_require__(154);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -53610,9 +53610,9 @@ webpackJsonp([0],[
 	//                template: require('./content.tpl.html')
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(158);
+	                         var template = __webpack_require__(158);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -53673,9 +53673,9 @@ webpackJsonp([0],[
 	//                template: require('./content.tpl.html')
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(164);
+	                         var template = __webpack_require__(164);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -53771,9 +53771,9 @@ webpackJsonp([0],[
 	//                    template: require('./content.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(170);
+	                             var template = __webpack_require__(170);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -55467,9 +55467,9 @@ webpackJsonp([0],[
 	//                    template: require('./resetpassword.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(189);
+	                             var template = __webpack_require__(189);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -55594,9 +55594,9 @@ webpackJsonp([0],[
 	//                    template: require('./content.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(193);
+	                             var template = __webpack_require__(193);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -55622,9 +55622,9 @@ webpackJsonp([0],[
 	//                    template: require('./registersuccess.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(194);
+	                             var template = __webpack_require__(194);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -55650,9 +55650,9 @@ webpackJsonp([0],[
 	//                    template: require('./confirmregister.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(195);
+	                             var template = __webpack_require__(195);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -56255,9 +56255,9 @@ webpackJsonp([0],[
 	//                template: require('./profile.tpl.html')
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(232);
+	                         var template = __webpack_require__(232);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -56381,9 +56381,9 @@ webpackJsonp([0],[
 	//            , template: require('./profile_changepassword.tpl.html')
 
 	            ,templateProvider: ['$q', function ($q) {
-	                let deferred = $q.defer();
+	                 var deferred = $q.defer();
 	                __webpack_require__.e/* nsure */(1, function () {
-	                    let template = __webpack_require__(200);
+	                     var template = __webpack_require__(200);
 	                    deferred.resolve(template);
 	                });
 	                return deferred.promise;
@@ -56404,9 +56404,9 @@ webpackJsonp([0],[
 	//            , template: require('./profile_changepasswordsuccess.tpl.html')
 
 	            ,templateProvider: ['$q', function ($q) {
-	                let deferred = $q.defer();
+	                 var deferred = $q.defer();
 	                __webpack_require__.e/* nsure */(1, function () {
-	                    let template = __webpack_require__(201);
+	                     var template = __webpack_require__(201);
 	                    deferred.resolve(template);
 	                });
 	                return deferred.promise;
@@ -56559,9 +56559,9 @@ webpackJsonp([0],[
 	//                ,template: require('./profile_changepersonaldata.tpl.html')
 
 	                ,templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(204);
+	                         var template = __webpack_require__(204);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -56823,9 +56823,9 @@ webpackJsonp([0],[
 	//                template: require('./profile_orderhistory.tpl.html'),
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(206);
+	                         var template = __webpack_require__(206);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -57287,9 +57287,9 @@ webpackJsonp([0],[
 
 
 	            ,templateProvider: ['$q', function ($q) {
-	                let deferred = $q.defer();
+	                 var deferred = $q.defer();
 	                __webpack_require__.e/* nsure */(1, function () {
-	                    let template = __webpack_require__(216);
+	                     var template = __webpack_require__(216);
 	                    deferred.resolve(template);
 	                });
 	                return deferred.promise;
@@ -57371,9 +57371,9 @@ webpackJsonp([0],[
 	//            template: require('./changecreditcarddata.tpl.html')
 
 	            ,templateProvider: ['$q', function ($q) {
-	                let deferred = $q.defer();
+	                 var deferred = $q.defer();
 	                __webpack_require__.e/* nsure */(1, function () {
-	                    let template = __webpack_require__(219);
+	                     var template = __webpack_require__(219);
 	                    deferred.resolve(template);
 	                });
 	                return deferred.promise;
@@ -58204,9 +58204,9 @@ webpackJsonp([0],[
 	//                template: require('./profile_queryhistory.tpl.html'),
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(231);
+	                         var template = __webpack_require__(231);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -58227,9 +58227,9 @@ webpackJsonp([0],[
 	//                template: require('./profile_queryhistory.tpl.html'),
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(231);
+	                         var template = __webpack_require__(231);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
@@ -58704,9 +58704,9 @@ webpackJsonp([0],[
 	//                    template: require('./templates/select-subscription-type.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(246);
+	                             var template = __webpack_require__(246);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -58734,9 +58734,9 @@ webpackJsonp([0],[
 	//                    template: require('./templates/create-subscription.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(265);
+	                             var template = __webpack_require__(265);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -58760,9 +58760,9 @@ webpackJsonp([0],[
 	//                    template: require('./templates/create-paypal-subscription.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(266);
+	                             var template = __webpack_require__(266);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -58789,9 +58789,9 @@ webpackJsonp([0],[
 	//                    template: require('./templates/success-create-paypal-subscription.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(267);
+	                             var template = __webpack_require__(267);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -58819,9 +58819,9 @@ webpackJsonp([0],[
 	//                    template: require('./templates/create-bitpay-subscription.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(268);
+	                             var template = __webpack_require__(268);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -58847,9 +58847,9 @@ webpackJsonp([0],[
 	//                    template: require('./templates/create-bitcoin-monthly-fee.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(270);
+	                             var template = __webpack_require__(270);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -58875,9 +58875,9 @@ webpackJsonp([0],[
 	//                    template: require('./templates/commit-bitcoin-user-payment.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(271);
+	                             var template = __webpack_require__(271);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -58906,9 +58906,9 @@ webpackJsonp([0],[
 	//                    template: require('./templates/get-fullinfo-subscription.tpl.html')
 
 	                    templateProvider: ['$q', function ($q) {
-	                        let deferred = $q.defer();
+	                         var deferred = $q.defer();
 	                        __webpack_require__.e/* nsure */(1, function () {
-	                            let template = __webpack_require__(272);
+	                             var template = __webpack_require__(272);
 	                            deferred.resolve(template);
 	                        });
 	                        return deferred.promise;
@@ -60266,9 +60266,9 @@ webpackJsonp([0],[
 	//                template: require('./templates/content.tpl.html')
 
 	                templateProvider: ['$q', function ($q) {
-	                    let deferred = $q.defer();
+	                     var deferred = $q.defer();
 	                    __webpack_require__.e/* nsure */(1, function () {
-	                        let template = __webpack_require__(287);
+	                         var template = __webpack_require__(287);
 	                        deferred.resolve(template);
 	                    });
 	                    return deferred.promise;
