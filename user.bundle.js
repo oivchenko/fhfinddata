@@ -40691,141 +40691,127 @@
 /***/ 412:
 /***/ function(module, exports) {
 
-	angular.module('fundoo.services', []).factory('createDialog', ["$document", "$compile", "$rootScope", "$controller", "$timeout",
-	  function ($document, $compile, $rootScope, $controller, $timeout) {
-	    var defaults = {
-	      id: null,
-	      template: null,
-	      templateUrl: null,
-	      title: 'Default Title',
-	      backdrop: true,
-	      success: {label: 'OK', fn: null},
-	      cancel: {label: 'Close', fn: null},
-	      controller: null, //just like route controller declaration
-	      backdropClass: "modal-backdrop",
-	      backdropCancel: true,
-	      footerTemplate: null,
-	      modalClass: "modal",
-	      css: {
-	        top: '100px',
-	        left: '30%',
-	        margin: '0 auto'
+	'use strict';
+
+	angular.module('fundoo.services', []).factory('createDialog', ["$document", "$compile", "$rootScope", "$controller", "$timeout", function ($document, $compile, $rootScope, $controller, $timeout) {
+	  var defaults = {
+	    id: null,
+	    template: null,
+	    templateUrl: null,
+	    title: 'Default Title',
+	    backdrop: true,
+	    success: { label: 'OK', fn: null },
+	    cancel: { label: 'Close', fn: null },
+	    controller: null, //just like route controller declaration
+	    backdropClass: "modal-backdrop",
+	    backdropCancel: true,
+	    footerTemplate: null,
+	    modalClass: "modal",
+	    css: {
+	      top: '100px',
+	      left: '30%',
+	      margin: '0 auto'
+	    }
+	  };
+	  var body = $document.find('body');
+
+	  return function Dialog(templateUrl /*optional*/, options, passedInLocals) {
+
+	    // Handle arguments if optional template isn't provided.
+	    if (angular.isObject(templateUrl)) {
+	      passedInLocals = options;
+	      options = templateUrl;
+	    } else {
+	      options.templateUrl = templateUrl;
+	    }
+
+	    options = angular.extend({}, defaults, options); //options defined in constructor
+
+	    var key;
+	    var idAttr = options.id ? ' id="' + options.id + '" ' : '';
+	    var defaultFooter = '<button class="btn" ng-click="$modalCancel()">{{$modalCancelLabel}}</button>' + '<button class="btn btn-primary" ng-click="$modalSuccess()">{{$modalSuccessLabel}}</button>';
+	    var footerTemplate = '<div class="modal-footer">' + (options.footerTemplate || defaultFooter) + '</div>';
+	    var modalBody = function () {
+	      if (options.template) {
+	        if (angular.isString(options.template)) {
+	          // Simple string template
+	          return '<div class="modal-body">' + options.template + '</div>';
+	        } else {
+	          // jQuery/JQlite wrapped object
+	          return '<div class="modal-body">' + options.template.html() + '</div>';
+	        }
+	      } else {
+	        // Template url
+	        return '<div class="modal-body" ng-include="\'' + options.templateUrl + '\'"></div>';
+	      }
+	    }();
+	    //We don't have the scope we're gonna use yet, so just get a compile function for modal
+	    var modalEl = angular.element('<div class="' + options.modalClass + ' fade"' + idAttr + ' style="display: block;">' + '  <div class="modal-dialog">' + '    <div class="modal-content">' + '      <div class="modal-header">' + '        <button type="button" class="close" ng-click="$modalCancel()">&times;</button>' + '        <h2>{{$title}}</h2>' + '      </div>' + modalBody + footerTemplate + '    </div>' + '  </div>' + '</div>');
+
+	    for (key in options.css) {
+	      modalEl.css(key, options.css[key]);
+	    }
+	    var divHTML = "<div ";
+	    if (options.backdropCancel) {
+	      divHTML += 'ng-click="$modalCancel()"';
+	    }
+	    divHTML += ">";
+	    var backdropEl = angular.element(divHTML);
+	    backdropEl.addClass(options.backdropClass);
+	    backdropEl.addClass('fade in');
+
+	    var handleEscPressed = function handleEscPressed(event) {
+	      if (event.keyCode === 27) {
+	        scope.$modalCancel();
 	      }
 	    };
-	    var body = $document.find('body');
 
-	    return function Dialog(templateUrl/*optional*/, options, passedInLocals) {
-
-	      // Handle arguments if optional template isn't provided.
-	      if(angular.isObject(templateUrl)){
-	        passedInLocals = options;
-	        options = templateUrl;
-	      } else {
-	        options.templateUrl = templateUrl;
+	    var closeFn = function closeFn() {
+	      body.unbind('keydown', handleEscPressed);
+	      modalEl.remove();
+	      if (options.backdrop) {
+	        backdropEl.remove();
 	      }
+	    };
 
-	      options = angular.extend({}, defaults, options); //options defined in constructor
+	    body.bind('keydown', handleEscPressed);
 
-	      var key;
-	      var idAttr = options.id ? ' id="' + options.id + '" ' : '';
-	      var defaultFooter = '<button class="btn" ng-click="$modalCancel()">{{$modalCancelLabel}}</button>' +
-	        '<button class="btn btn-primary" ng-click="$modalSuccess()">{{$modalSuccessLabel}}</button>';
-	      var footerTemplate = '<div class="modal-footer">' +
-	        (options.footerTemplate || defaultFooter) +
-	        '</div>';
-	      var modalBody = (function(){
-	        if(options.template){
-	          if(angular.isString(options.template)){
-	            // Simple string template
-	            return '<div class="modal-body">' + options.template + '</div>';
-	          } else {
-	            // jQuery/JQlite wrapped object
-	            return '<div class="modal-body">' + options.template.html() + '</div>';
-	          }
-	        } else {
-	          // Template url
-	          return '<div class="modal-body" ng-include="\'' + options.templateUrl + '\'"></div>'
-	        }
-	      })();
-	      //We don't have the scope we're gonna use yet, so just get a compile function for modal
-	      var modalEl = angular.element(
-	                '<div class="' + options.modalClass + ' fade"' + idAttr + ' style="display: block;">' +
-	                    '  <div class="modal-dialog">' +
-	                    '    <div class="modal-content">' +
-	                    '      <div class="modal-header">' +
-	                    '        <button type="button" class="close" ng-click="$modalCancel()">&times;</button>' +
-	                    '        <h2>{{$title}}</h2>' +
-	                    '      </div>' +
-	                    modalBody +
-	                    footerTemplate +
-	                    '    </div>' +
-	                    '  </div>' +
-	                    '</div>');
-
-	      for(key in options.css) {
-	        modalEl.css(key, options.css[key]);
-	      }
-	      var divHTML = "<div ";
-	      if(options.backdropCancel){
-	        divHTML+='ng-click="$modalCancel()"';
-	      }
-	      divHTML+=">";
-	      var backdropEl = angular.element(divHTML);
-	      backdropEl.addClass(options.backdropClass);
-	      backdropEl.addClass('fade in');
-
-	      var handleEscPressed = function (event) {
-	        if (event.keyCode === 27) {
-	          scope.$modalCancel();
-	        }
-	      };
-
-	      var closeFn = function () {
-	        body.unbind('keydown', handleEscPressed);
-	        modalEl.remove();
-	        if (options.backdrop) {
-	          backdropEl.remove();
-	        }
-	      };
-
-	      body.bind('keydown', handleEscPressed);
-
-	      var ctrl, locals,
+	    var ctrl,
+	        locals,
 	        scope = options.scope || $rootScope.$new();
 
-	      scope.$title = options.title;
-	      scope.$modalClose = closeFn;
-	      scope.$modalCancel = function () {
-	        var callFn = options.cancel.fn || closeFn;
-	        callFn.call(this);
-	        scope.$modalClose();
-	      };
-	      scope.$modalSuccess = function () {
-	        var callFn = options.success.fn || closeFn;
-	        callFn.call(this);
-	        scope.$modalClose();
-	      };
-	      scope.$modalSuccessLabel = options.success.label;
-	      scope.$modalCancelLabel = options.cancel.label;
-	      
-	      if (options.controller) {
-	        locals = angular.extend({$scope: scope}, passedInLocals);
-	        ctrl = $controller(options.controller, locals);
-	        // Yes, ngControllerController is not a typo
-	        modalEl.contents().data('$ngControllerController', ctrl);
-	      }
-
-	      $compile(modalEl)(scope);
-	      $compile(backdropEl)(scope);
-	      body.append(modalEl);
-	      if (options.backdrop) body.append(backdropEl);
-
-	      $timeout(function () {
-	        modalEl.addClass('in');
-	      }, 200);
+	    scope.$title = options.title;
+	    scope.$modalClose = closeFn;
+	    scope.$modalCancel = function () {
+	      var callFn = options.cancel.fn || closeFn;
+	      callFn.call(this);
+	      scope.$modalClose();
 	    };
-	  }]);
+	    scope.$modalSuccess = function () {
+	      var callFn = options.success.fn || closeFn;
+	      callFn.call(this);
+	      scope.$modalClose();
+	    };
+	    scope.$modalSuccessLabel = options.success.label;
+	    scope.$modalCancelLabel = options.cancel.label;
 
+	    if (options.controller) {
+	      locals = angular.extend({ $scope: scope }, passedInLocals);
+	      ctrl = $controller(options.controller, locals);
+	      // Yes, ngControllerController is not a typo
+	      modalEl.contents().data('$ngControllerController', ctrl);
+	    }
+
+	    $compile(modalEl)(scope);
+	    $compile(backdropEl)(scope);
+	    body.append(modalEl);
+	    if (options.backdrop) body.append(backdropEl);
+
+	    $timeout(function () {
+	      modalEl.addClass('in');
+	    }, 200);
+	  };
+	}]);
 
 /***/ },
 
@@ -45370,16 +45356,9 @@ webpackJsonp([1],{
 
 	'use strict';
 
-	var _deps = [
-
-	        'ngMessages',
-	        'ui.router',
-	        'ngSanitize',
-	        'angular-capitalize-filter',
-	            'ngAnimate',
-	          'angular-loading-bar',
+	var _deps = ['ngMessages', 'ui.router', 'ngSanitize', 'angular-capitalize-filter', 'ngAnimate', 'angular-loading-bar',
 	//          'ui.bootstrap',
-	          'ui.select',
+	'ui.select',
 
 	//        'ui.grid',
 	//        'ui.grid.resizeColumns',
@@ -45389,24 +45368,9 @@ webpackJsonp([1],{
 	//        'ui.grid.saveState',
 	//        'ui.grid.pagination',
 
-	        'ui.grid',
-	        'ui.grid.resizeColumns',
-	        'ui.grid.pinning',
-	        'ui.grid.selection',
-	        'ui.grid.moveColumns',
-	        'ui.grid.saveState',
-	        'ui.grid.pagination',
-	        'ui.grid.autoResize',
-
-
-	        'fundoo.services',
-	        'ngMap',
-	        'ui.checkbox',
-	        'ui.date',
+	'ui.grid', 'ui.grid.resizeColumns', 'ui.grid.pinning', 'ui.grid.selection', 'ui.grid.moveColumns', 'ui.grid.saveState', 'ui.grid.pagination', 'ui.grid.autoResize', 'fundoo.services', 'ngMap', 'ui.checkbox', 'ui.date',
 	//        'ui.bootstrap.datetimepicker',
-	        'datePicker',
-	        'ui.dateTimeInput',
-
+	'datePicker', 'ui.dateTimeInput',
 
 	//        'ngBootstrap',
 	//            'daterangepicker',
@@ -45414,22 +45378,18 @@ webpackJsonp([1],{
 
 	//        'moment',
 	//        'ui.mask',
-	        'toaster',
-
-	        'ngStorage',
+	'toaster', 'ngStorage',
 	//        'LocalStorageModule',
-	        'formly',
-	        'formlyBootstrap'
+	'formly', 'formlyBootstrap'
 	//        , 'ng-if-bootstrap-grid'
 
 
 	// 21        , 'ngBreakpoint'
 	// 21        , 'frapontillo.bootstrap-switch'
-	        , 'ngMeta'
+	, 'ngMeta'
 
 	//        , 'eha.back-button.directive'
 	//        , 'eha.back-button.templates'
-
 
 
 	//        'app_tools'
@@ -45438,12 +45398,9 @@ webpackJsonp([1],{
 	//        , 'FreshFindData'
 	];
 
-
-	var app = angular.module('ffd-routes',_deps);
+	var app = angular.module('ffd-routes', _deps);
 	//require('./Directives/')(app);
 	__webpack_require__(301)(app);
-
-
 
 /***/ },
 
@@ -45473,9 +45430,8 @@ webpackJsonp([1],{
 
 	    __webpack_require__(337);
 
-	//    require('./uuid2Factory.js')(app);
-	}
-
+	    //    require('./uuid2Factory.js')(app);
+	};
 
 /***/ },
 
@@ -45484,48 +45440,37 @@ webpackJsonp([1],{
 
 	'use strict';
 
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 
-	    app.factory('_',   lodashfactory);
+	    app.factory('_', lodashfactory);
 
 	    /* @ngInject */
-	    function lodashfactory($window,$filter)
-	    {
+	    function lodashfactory($window, $filter) {
 	        var _ = $window._;
 
-	        
-	        _.mixin
-	        ({
-	            col13dig2date: function (_recs) {
-	                var _recs1 =
-	                                    _.map(_recs, function (item) {
-	                                        var item_new = {};
-	                                        _.each(item,
-	                                            function (v, k) {
-	                                                item_new[k] = item[k];
-	                                                if (/\d{13}/.test(v)) {
-	                                                    item_new[k] = v.match(/\d+/)[0];
-	//                                                    item_new[k] = $filter('date')(item_new[k], 'yyyy-MM-dd');
-	                                                    item_new[k] = $filter('date')(item_new[k], 'MM-dd-yyyy');
-	                                                }
-	                                            });
-	                                        return item_new;
-	                                    });
+	        _.mixin({
+	            col13dig2date: function col13dig2date(_recs) {
+	                var _recs1 = _.map(_recs, function (item) {
+	                    var item_new = {};
+	                    _.each(item, function (v, k) {
+	                        item_new[k] = item[k];
+	                        if (/\d{13}/.test(v)) {
+	                            item_new[k] = v.match(/\d+/)[0];
+	                            //                                                    item_new[k] = $filter('date')(item_new[k], 'yyyy-MM-dd');
+	                            item_new[k] = $filter('date')(item_new[k], 'MM-dd-yyyy');
+	                        }
+	                    });
+	                    return item_new;
+	                });
 	                return _recs1;
 	            }
 	        });
 
-	       
-
 	        //        delete ($window._);
-	        return (_);
+	        return _;
 	    }
 	    lodashfactory.$inject = ["$window", "$filter"];
-
-
-
-	}
+	};
 
 /***/ },
 
@@ -45534,22 +45479,16 @@ webpackJsonp([1],{
 
 	'use strict';
 
+	module.exports = function (app) {
 
-	module.exports=function(app)
-	{
-
-
-
-	    app.constant('FFD_CONST',
-	        {
-	            "API_BASE_URL": "/SPA/NewRemoteMethods.aspx/",
-	            SOCIAL_FB_LINK : "https://www.facebook.com/Freshfinddatacom-1450150908606616/",
-	            SOCIAL_TW_LINK: "https://twitter.com/freshfinddata",
-	            SOCIAL_IN_LINK: "http://www.linkedin.com/company/freshfinddata",
-	            ROUTE_METAS: __webpack_require__(304)
-	        }
-	        );
-	}
+	    app.constant('FFD_CONST', {
+	        "API_BASE_URL": "/SPA/NewRemoteMethods.aspx/",
+	        SOCIAL_FB_LINK: "https://www.facebook.com/Freshfinddatacom-1450150908606616/",
+	        SOCIAL_TW_LINK: "https://twitter.com/freshfinddata",
+	        SOCIAL_IN_LINK: "http://www.linkedin.com/company/freshfinddata",
+	        ROUTE_METAS: __webpack_require__(304)
+	    });
+	};
 
 /***/ },
 
@@ -45558,109 +45497,96 @@ webpackJsonp([1],{
 
 	'use strict';
 
+	module.exports = {
+	    'home': {
+	        'title': 'New Business Leads from FreshFind Data',
+	        'description': 'Tap into new business leads as soon as the data is available'
 
-	module.exports =
-	    {
-	        'home':
-	            {
-	                'title'             : 'New Business Leads from FreshFind Data'
-	                ,'description'      : 'Tap into new business leads as soon as the data is available'
+	        //                , 'keywords': require('./keywords.js').join(' , ')
+	        , 'keywords': 'New Business Leads , New Business List , Find List of New Businesses in My Area , Businesses selling to businesses , Lead generation for sales teams , Sales Professionals , Marketing lead generation , Sales Leads , Business Sales Leads , New Business , Mailing Lists , Business-to-Business , Tools built specifically for Sales Professionals , New Business Sales Leads , The best data , prospecting leads , prospect list , grow my business , b to b leads , new startup leads , target new business , find new customers , new business names , new business sales leads , new business leads , new business data',
 
-	//                , 'keywords': require('./keywords.js').join(' , ')
-	                  , 'keywords': 'New Business Leads , New Business List , Find List of New Businesses in My Area , Businesses selling to businesses , Lead generation for sales teams , Sales Professionals , Marketing lead generation , Sales Leads , Business Sales Leads , New Business , Mailing Lists , Business-to-Business , Tools built specifically for Sales Professionals , New Business Sales Leads , The best data , prospecting leads , prospect list , grow my business , b to b leads , new startup leads , target new business , find new customers , new business names , new business sales leads , new business leads , new business data'
+	        'og:title': 'Transform the way you find business leads | FreshFind Data',
+	        'og:type': 'website',
+	        'og:url': 'https://www.freshfinddata.com/',
+	        'og:image': 'https://www.freshfinddata.com/img/freshfind-og-img-home.jpg',
+	        'og:description': 'Tap into new business leads as soon as the data is availables.'
+	    },
 
-	                , 'og:title'        : 'Transform the way you find business leads | FreshFind Data'
-	                ,'og:type'          : 'website'
-	                ,'og:url'           : 'https://www.freshfinddata.com/'
-	                ,'og:image'         : 'https://www.freshfinddata.com/img/freshfind-og-img-home.jpg'
-	                ,'og:description'   : 'Tap into new business leads as soon as the data is availables.'
-	            }
+	    'about': {
+	        'title': 'About New Business Leads',
+	        'description': 'FreshFind Data brings you business-to-business sales leads and marketing info for over 14 million established businesses and 2.5 million brand new businesses',
+	        'og:title': 'About | FreshFind Data',
+	        'og:type': 'website',
+	        'og:url': 'https://www.freshfinddata.com/about',
+	        'og:image': 'https://www.freshfinddata.com/img/freshfind-og-img-about.jpg',
+	        'og:description': 'FreshFind Data brings you business-to-business sales leads and marketing info for over 14 million established businesses and 2.5 million brand new businesses.'
 
-	        , 'about':
-	            {
-	                'title': 'About New Business Leads'
-	                ,'description'      : 'FreshFind Data brings you business-to-business sales leads and marketing info for over 14 million established businesses and 2.5 million brand new businesses'
-	                ,'og:title'         : 'About | FreshFind Data'
-	                ,'og:type'          : 'website'
-	                ,'og:url'           : 'https://www.freshfinddata.com/about'
-	                ,'og:image'         : 'https://www.freshfinddata.com/img/freshfind-og-img-about.jpg'
-	                ,'og:description'   : 'FreshFind Data brings you business-to-business sales leads and marketing info for over 14 million established businesses and 2.5 million brand new businesses.'
+	    },
 
-	            }
+	    'tryit': {
+	        'title': 'LeadFormulator find and create New Business Leads',
+	        'description': 'Try our demo and scan our database to see how many business leads are waiting for you',
+	        'og:title': 'Try It | FreshFind Data',
+	        'og:type': 'website',
+	        'og:url': 'https://www.freshfinddata.com/try-it',
+	        'og:image': 'https://www.freshfinddata.com/img/freshfind-og-img-try-it.jpg',
+	        'og:description': 'Try our demo and scan our database to see how many business leads are waiting for you.'
+	    },
 
-	        , 'tryit':
-	            {
-	                'title'             : 'LeadFormulator find and create New Business Leads'
-	                ,'description'      : 'Try our demo and scan our database to see how many business leads are waiting for you'
-	                ,'og:title'         : 'Try It | FreshFind Data'
-	                ,'og:type'          : 'website'
-	                ,'og:url'           : 'https://www.freshfinddata.com/try-it'
-	                ,'og:image'         : 'https://www.freshfinddata.com/img/freshfind-og-img-try-it.jpg'
-	                ,'og:description'   : 'Try our demo and scan our database to see how many business leads are waiting for you.'
-	            }
+	    'pricing': {
+	        'title': 'Pricing New Business Leads $29.99 Monthly Subscription',
+	        'description': 'Try our special introductory offer and enjoy up to 5000 downloads per month, unlimited searches, and a 30 day no risk trial',
+	        'og:title': 'Pricing | FreshFind Data',
+	        'og:type': 'website',
+	        'og:url': 'https://www.freshfinddata.com/pricing',
+	        'og:image': 'https://www.freshfinddata.com/img/freshfind-og-img-pricing.jpg',
+	        'og:description': 'Try our special introductory offer and enjoy up to 5000 downloads per month, unlimited searches, and a 30 day no risk trial.'
+	    },
 
-	        , 'pricing':
-	            {
-	                'title'             : 'Pricing New Business Leads $29.99 Monthly Subscription'
-	                ,'description'      : 'Try our special introductory offer and enjoy up to 5000 downloads per month, unlimited searches, and a 30 day no risk trial'
-	                ,'og:title'         : 'Pricing | FreshFind Data'
-	                ,'og:type'          : 'website'
-	                ,'og:url'           : 'https://www.freshfinddata.com/pricing'
-	                ,'og:image'         : 'https://www.freshfinddata.com/img/freshfind-og-img-pricing.jpg'
-	                ,'og:description'   : 'Try our special introductory offer and enjoy up to 5000 downloads per month, unlimited searches, and a 30 day no risk trial.'
-	            }
+	    'faq': {
+	        'title': 'FAQ For New Business Leads List',
+	        'description': 'Frequently asked questions about our data, lists, subscriptions, access and security, and terms and conditions',
+	        'keywords': 'business lists,FreshFind List Launcher,FreshFind FAQ, about , contact , expert service , faq , freshfind , list launcher,list leads',
+	        'og:title': 'Frequently Asked Questions | FreshFind Data',
+	        'og:type': 'website',
+	        'og:url': 'https://www.freshfinddata.com/faq',
+	        'og:image': 'https://www.freshfinddata.com/img/freshfind-og-img-faq.jpg',
+	        'og:description': 'Frequently asked questions about our data, lists, subscriptions, access and security, and terms and conditions.'
+	    },
 
-	        , 'faq':
-	            {
-	                  'title'           : 'FAQ For New Business Leads List'
-	                , 'description'     : 'Frequently asked questions about our data, lists, subscriptions, access and security, and terms and conditions'
-	                , 'keywords'        : 'business lists,FreshFind List Launcher,FreshFind FAQ, about , contact , expert service , faq , freshfind , list launcher,list leads'
-	                , 'og:title'        : 'Frequently Asked Questions | FreshFind Data'
-	                , 'og:type'         : 'website'
-	                , 'og:url'          : 'https://www.freshfinddata.com/faq'
-	                , 'og:image'        : 'https://www.freshfinddata.com/img/freshfind-og-img-faq.jpg'
-	                , 'og:description'  : 'Frequently asked questions about our data, lists, subscriptions, access and security, and terms and conditions.'
-	            }
+	    'contact': {
+	        'title': 'Contact New Business Leads',
+	        'description': 'For more information about FreshFind Data, fill out our contact form, email us, or call',
+	        'og:title': 'Contact Us | FreshFind Data',
+	        'og:type': 'website',
+	        'og:url': 'https://www.freshfinddata.com/contact',
+	        'og:image': 'https://www.freshfinddata.com/img/freshfind-og-img-contact.jpg',
+	        'og:description': 'For more information about FreshFind Data, fill out our contact form, email us, or call'
+	    },
 
-	        , 'contact':
-	            {
-	                  'title'           : 'Contact New Business Leads'
-	                , 'description'     : 'For more information about FreshFind Data, fill out our contact form, email us, or call'
-	                , 'og:title'        : 'Contact Us | FreshFind Data'
-	                , 'og:type'         : 'website'
-	                , 'og:url'          : 'https://www.freshfinddata.com/contact'
-	                , 'og:image'        : 'https://www.freshfinddata.com/img/freshfind-og-img-contact.jpg'
-	                , 'og:description'  : 'For more information about FreshFind Data, fill out our contact form, email us, or call'
-	            }
+	    'howitworks': {
+	        'title': 'How it Works create your New Business Leads List',
+	        'description': 'Through sophisticated data mining and web crawling technology, we are able to provide you with the purest, most accurate data in the industry',
+	        'og:title': 'How It Works | FreshFind Data',
+	        'og:type': 'website',
+	        'og:url': 'https://www.freshfinddata.com/how-it-works',
+	        'og:image': 'https://www.freshfinddata.com/img/freshfind-og-img-how-it-works.jpg',
+	        'og:description': 'Through sophisticated data mining and web crawling technology, we are able to provide you with the purest, most accurate data in the industry'
 
-	        , 'howitworks':
-	            {
-	                  'title'           : 'How it Works create your New Business Leads List'
-	                , 'description'     : 'Through sophisticated data mining and web crawling technology, we are able to provide you with the purest, most accurate data in the industry'
-	                , 'og:title'        : 'How It Works | FreshFind Data'
-	                , 'og:type'         : 'website'
-	                , 'og:url'          : 'https://www.freshfinddata.com/how-it-works'
-	                , 'og:image'        : 'https://www.freshfinddata.com/img/freshfind-og-img-how-it-works.jpg'
-	                , 'og:description'  : 'Through sophisticated data mining and web crawling technology, we are able to provide you with the purest, most accurate data in the industry'
+	    },
 
-	            }
-
-	        , 'yourdatapro':
-	            {
-	                 'title'            : 'Your Data Pro Find New Business Leads'
-	                ,'description'      : 'The experts at FreshFind Data have years of experience in the industry and provide you with business leads tailored specifically to your needs'
-	                ,'keywords'         : 'business lists,FreshFind List Launcher,FreshFind FAQ, about , contact , expert service , faq , freshfind , list launcher,list leads'
-	                ,'og:title'         : 'Your Data Pro | FreshFind Data'
-	                ,'og:type'          : 'website'
-	                ,'og:url'           : 'https://www.freshfinddata.com/your-data-pro'
-	                ,'og:image'         : 'https://www.freshfinddata.com/img/freshfind-og-img-your-data-pro.jpg'
-	                ,'og:description'   : 'The experts at FreshFind Data have years of experience in the industry and provide you with business leads tailored specifically to your needs'
-	            }
-
+	    'yourdatapro': {
+	        'title': 'Your Data Pro Find New Business Leads',
+	        'description': 'The experts at FreshFind Data have years of experience in the industry and provide you with business leads tailored specifically to your needs',
+	        'keywords': 'business lists,FreshFind List Launcher,FreshFind FAQ, about , contact , expert service , faq , freshfind , list launcher,list leads',
+	        'og:title': 'Your Data Pro | FreshFind Data',
+	        'og:type': 'website',
+	        'og:url': 'https://www.freshfinddata.com/your-data-pro',
+	        'og:image': 'https://www.freshfinddata.com/img/freshfind-og-img-your-data-pro.jpg',
+	        'og:description': 'The experts at FreshFind Data have years of experience in the industry and provide you with business leads tailored specifically to your needs'
 	    }
 
-
-
+	};
 
 /***/ },
 
@@ -45673,213 +45599,181 @@ webpackJsonp([1],{
 
 	module.exports = function (app) {
 
-	    app.factory('InfoFactory', _InfoFactory);
+	            app.factory('InfoFactory', _InfoFactory);
+
+	            function _InfoFactory(FFD_CONST, $http, $q) {
+
+	                        var cities = [];
+	                        var cities_int = [];
+
+	                        var counties = [];
+	                        var counties_int = [];
+
+	                        var keywords = [];
+	                        var keywords_int = [];
+
+	                        var phrase3_prev = "";
+	                        var phrase3_prev_c = "";
+	                        var states_prev = "";
+	                        var states_prev_c = "";
+
+	                        var _bustypes = [
+	                        //               { id: 1, name: "NEW BUSINESS" },
+	                        //               { id: 2, name: "ESTABLISHED BUSINESS" },
+
+	                        { id: 1, name: "New Businesses" }
+
+	                        //               ,{ id: 2, name: "Established Businesses" }
 
 
-	    function _InfoFactory(FFD_CONST, $http, $q)
-	    {
+	                        ];
 
+	                        var _companysizes = [{ value: 'E1', name: '0 - 4' }, { value: 'E2', name: '5 - 9' }, { value: 'E3', name: '10 - 24' }, { value: 'E4', name: '25 - 99' }, { value: 'E5', name: '100 - 500' }, { value: 'E6', name: '>500' }];
 
-	        var cities = [];
-	        var cities_int = [];
+	                        var _salesvolumes = [{ value: 'S1', name: '0 - 1M' }, { value: 'S2', name: '1M - 2.5M' }, { value: 'S3', name: '2.5M - 5M' }, { value: 'S4', name: '5M - 10M' }, { value: 'S5', name: '10M - 50M' }, { value: 'S6', name: '50M and above' }];
 
-	        var counties = [];
-	        var counties_int = [];
+	                        var _getallstates = function _getallstates() {
+	                                    var deferral = $q.defer();
+	                                    $http.post(FFD_CONST.API_BASE_URL + "allstates", {}).success(function (data, status, headers, config) {
+	                                                deferral.resolve({ states: data.d });
+	                                    });
+	                                    return deferral.promise;
+	                        };
 
-	        var keywords = [];
-	        var keywords_int = [];
+	                        var _getsiccodes = function _getsiccodes() {
+	                                    var deferral = $q.defer();
+	                                    $http.post(FFD_CONST.API_BASE_URL + "siccodes", {}).success(function (data, status, headers, config) {
+	                                                deferral.resolve({ siccodes: data.d });
+	                                    });
+	                                    return deferral.promise;
+	                        };
 
-	        var phrase3_prev = "";
-	        var phrase3_prev_c = "";
-	        var states_prev = "";
-	        var states_prev_c = "";
+	                        var _getcities = function _getcities(phrase, _states) {
+	                                    if (phrase.length < 3) {
+	                                                return $q.when({ cities: [] });
+	                                    }
 
+	                                    var phrase3 = phrase.substr(0, 3).toLowerCase();
+	                                    var states_cur = angular.toJson(_states);
+	                                    if (phrase3 == phrase3_prev && states_cur == states_prev) {
+	                                                cities = cities_int;return $q.when({ cities: cities });
+	                                    }
 
+	                                    phrase3_prev = phrase3;
+	                                    states_prev = states_cur;
+	                                    console.log('refresh cities ' + phrase);
 
-	        var _bustypes =
-	            [
-	//               { id: 1, name: "NEW BUSINESS" },
-	//               { id: 2, name: "ESTABLISHED BUSINESS" },
+	                                    var deferral = $q.defer();
 
-	               { id: 1, name: "New Businesses" }
+	                                    var request = $http({
+	                                                method: "post",
+	                                                url: FFD_CONST.API_BASE_URL + "cities",
+	                                                data: { states: _states, search: phrase }
+	                                    });
 
-	//               ,{ id: 2, name: "Established Businesses" }
+	                                    request.success(function (data, status, headers, config) {
+	                                                cities_int = data.d;
+	                                                cities = data.d;
+	                                                deferral.resolve({ cities: cities });
+	                                    }).error(function (data, status, headers, config) {
+	                                                deferral.reject('Error while getting cities !!!');
+	                                    });
 
+	                                    return deferral.promise;
+	                        };
 
-	            ];
+	                        var _getcounties = function _getcounties(phrase, _states) {
+	                                    if (phrase.length < 3) {
+	                                                return $q.when({ counties: [] });
+	                                    }
 
-	        var _companysizes =
-	            [
-	                { value: 'E1', name: '0 - 4' },
-	                { value: 'E2', name: '5 - 9' },
-	                { value: 'E3', name: '10 - 24' },
-	                { value: 'E4', name: '25 - 99' },
-	                { value: 'E5', name: '100 - 500' },
-	                { value: 'E6', name: '>500' }
-	            ];
+	                                    var phrase3 = phrase.substr(0, 3).toLowerCase();
+	                                    var states_cur = angular.toJson(_states);
 
-	        var _salesvolumes =
-	            [
-	                { value: 'S1', name: '0 - 1M' },
-	                { value: 'S2', name: '1M - 2.5M' },
-	                { value: 'S3', name: '2.5M - 5M' },
-	                { value: 'S4', name: '5M - 10M' },
-	                { value: 'S5', name: '10M - 50M' },
-	                { value: 'S6', name: '50M and above' }
-	            ];
+	                                    if (phrase3 == phrase3_prev_c && states_cur == states_prev_c) {
+	                                                return $q.when({ counties: counties });
+	                                    }
 
-	        var _getallstates = function () {
-	            var deferral = $q.defer();
-	            $http.post(FFD_CONST.API_BASE_URL + "allstates", {})
-	            .success(function (data, status, headers, config) {
-	                deferral.resolve({ states: data.d });
-	            });
-	            return deferral.promise;
-	        };
+	                                    phrase3_prev_c = phrase3;
+	                                    states_prev_c = states_cur;
 
+	                                    console.log('refresh counties ' + phrase);
 
-	        var _getsiccodes = function () {
-	            var deferral = $q.defer();
-	            $http.post(FFD_CONST.API_BASE_URL + "siccodes", {})
-	            .success(function (data, status, headers, config) {
-	                deferral.resolve({ siccodes: data.d });
-	            });
-	            return deferral.promise;
-	        };
+	                                    var deferral = $q.defer();
 
+	                                    var request = $http({
+	                                                method: "post",
+	                                                url: FFD_CONST.API_BASE_URL + "counties",
+	                                                data: { states: _states, search: phrase }
+	                                    });
 
-	        var _getcities = function (phrase, _states) {
-	            if (phrase.length < 3) { return $q.when({ cities: [] }); }
+	                                    request.success(function (data, status, headers, config) {
+	                                                counties = data.d;
+	                                                deferral.resolve({ counties: counties });
+	                                    }).error(function (data, status, headers, config) {
+	                                                deferral.reject('Error while getting counties !!!');
+	                                    });
 
-	            var phrase3 = phrase.substr(0, 3).toLowerCase();
-	            var states_cur = angular.toJson(_states);
-	            if ((phrase3 == phrase3_prev) && (states_cur == states_prev)) { cities = cities_int; return $q.when({ cities: cities }); }
+	                                    return deferral.promise;
+	                        };
 
-	            phrase3_prev = phrase3;
-	            states_prev = states_cur;
-	            console.log('refresh cities ' + phrase);
+	                        var _getsic2kw = function _getsic2kw(phrase) {
+	                                    if (phrase.length < 3) {
+	                                                return $q.when({ kw: [] });
+	                                    }
 
+	                                    var phrase3 = phrase.substr(0, 3).toLowerCase();
+	                                    if (phrase3 == phrase3_prev) {
+	                                                keywords = keywords_int;return $q.when({ keywords: keywords });
+	                                    }
 
+	                                    phrase3_prev = phrase3;
 
-	            var deferral = $q.defer();
+	                                    var deferral = $q.defer();
 
-	            var request = $http({
-	                method: "post",
-	                url: FFD_CONST.API_BASE_URL + "cities",
-	                data: { states: _states, search: phrase }
-	            });
+	                                    var request = $http({
+	                                                method: "post",
+	                                                url: FFD_CONST.API_BASE_URL + "GetSIC2Keywords",
+	                                                data: { search: phrase }
+	                                    });
 
+	                                    request.success(function (data, status, headers, config) {
+	                                                keywords_int = data.d;
+	                                                keywords = data.d;
+	                                                deferral.resolve({ keywords: keywords });
+	                                    }).error(function (data, status, headers, config) {
+	                                                deferral.reject('Error while getting keywords !!!');
+	                                    });
 
+	                                    return deferral.promise;
+	                        };
 
-	            request
-	            .success(function (data, status, headers, config) {
-	                cities_int = data.d;
-	                cities = data.d;
-	                deferral.resolve({ cities: cities });
-	            })
-	            .error(function (data, status, headers, config) { deferral.reject('Error while getting cities !!!'); });
+	                        /*
+	                        var _getsic2keywords = function () {
+	                            var deferral = $q.defer();
+	                            $http.post(FFD_CONST.API_BASE_URL + "GetSIC2Keywords_", {})
+	                            .success(function (data, status, headers, config) {
+	                                deferral.resolve({ keywords: data.d });
+	                            });
+	                            return deferral.promise;
+	                        };
+	                        */
 
-	            return deferral.promise;
+	                        var _factory = {
+	                                    bustypes: _bustypes,
+	                                    companysizes: _companysizes,
+	                                    salesvolumes: _salesvolumes,
+	                                    getallstates: _getallstates,
+	                                    getsiccodes: _getsiccodes,
+	                                    getcities: _getcities,
+	                                    getcounties: _getcounties,
+	                                    getsic2kw: _getsic2kw
+	                        };
 
-	        };
-
-	        var _getcounties = function (phrase, _states) {
-	            if (phrase.length < 3) { return $q.when({ counties: [] }); }
-
-	            var phrase3 = phrase.substr(0, 3).toLowerCase();
-	            var states_cur = angular.toJson(_states);
-
-	            if ((phrase3 == phrase3_prev_c) && (states_cur == states_prev_c))
-	            { return $q.when({ counties: counties }); }
-
-	            phrase3_prev_c = phrase3;
-	            states_prev_c = states_cur;
-
-	            console.log('refresh counties ' + phrase);
-
-	            var deferral = $q.defer();
-
-	            var request = $http({
-	                method: "post",
-	                url: FFD_CONST.API_BASE_URL + "counties",
-	                data: { states: _states, search: phrase }
-	            });
-
-
-
-	            request
-	            .success(function (data, status, headers, config) {
-	                counties = data.d;
-	                deferral.resolve({ counties: counties });
-	            })
-	            .error(function (data, status, headers, config) { deferral.reject('Error while getting counties !!!'); });
-
-	            return deferral.promise;
-	        };
-
-
-	        var _getsic2kw = function (phrase) {
-	            if (phrase.length < 3) { return $q.when({ kw: [] }); }
-
-	            var phrase3 = phrase.substr(0, 3).toLowerCase();
-	            if (phrase3 == phrase3_prev) { keywords = keywords_int; return $q.when({ keywords: keywords }); }
-
-	            phrase3_prev = phrase3;
-
-
-
-	            var deferral = $q.defer();
-
-	            var request = $http({
-	                method: "post",
-	                url: FFD_CONST.API_BASE_URL + "GetSIC2Keywords",
-	                data: { search: phrase }
-	            });
-
-
-
-	            request
-	            .success(function (data, status, headers, config) {
-	                keywords_int = data.d;
-	                keywords = data.d;
-	                deferral.resolve({ keywords: keywords });
-	            })
-	            .error(function (data, status, headers, config) { deferral.reject('Error while getting keywords !!!'); });
-
-	            return deferral.promise;
-
-	        };
-
-	        /*
-	        var _getsic2keywords = function () {
-	            var deferral = $q.defer();
-	            $http.post(FFD_CONST.API_BASE_URL + "GetSIC2Keywords_", {})
-	            .success(function (data, status, headers, config) {
-	                deferral.resolve({ keywords: data.d });
-	            });
-	            return deferral.promise;
-	        };
-	        */
-
-	        var _factory=
-	        {
-	            bustypes : _bustypes,
-	            companysizes : _companysizes,
-	            salesvolumes: _salesvolumes,
-	            getallstates: _getallstates,
-	            getsiccodes: _getsiccodes,
-	            getcities: _getcities,
-	            getcounties: _getcounties,
-	            getsic2kw: _getsic2kw,
-	        };
-
-	        return _factory;
-
-
-	    }
-	    _InfoFactory.$inject = ["FFD_CONST", "$http", "$q"];
-
-	}
+	                        return _factory;
+	            }
+	            _InfoFactory.$inject = ["FFD_CONST", "$http", "$q"];
+	};
 	module.exports.$inject = ["app"];
 
 /***/ },
@@ -45900,52 +45794,47 @@ webpackJsonp([1],{
 	        var _dend = moment().format("MM/DD/YYYY");
 	        var _dstart = moment().subtract(_months_back, "months").format("MM/DD/YYYY");
 
-	        var _int_bustype = 1;  //  InfoFactory.bustypes[0];
+	        var _int_bustype = 1; //  InfoFactory.bustypes[0];
 
 
+	        var _choices = {
+	            //                bustype: InfoFactory.bustypes[0],
 
-	        var _choices =
-	            {
-	                //                bustype: InfoFactory.bustypes[0],
+	            _date_start: _dstart,
 
-	                _date_start: _dstart,
+	            _date_start_: moment().subtract(_months_back, "months").toDate(),
 
-	                _date_start_: moment().subtract(_months_back, "months").toDate(),
+	            _date_end: _dend,
 
-	                _date_end: _dend,
+	            _date_end_: moment().toDate(), //_dend,
 
-	                _date_end_: moment().toDate(), //_dend,
+	            states: [],
+	            cities: [],
+	            zipcodes: [],
+	            areacodes: [],
+	            counties: [],
+	            siccodes: [],
+	            keywords: [],
+	            rbdiBusiness: false,
+	            rbdiIndividual: false,
+	            rbdiUnknown: false,
+	            zipForRadius: "",
+	            radiusMiles: "",
+	            companysizes: [],
+	            salesvolumes: [],
+	            chkContactNames: false,
+	            chkPhoneNumbers: false,
+	            chkEmails: false,
+	            chkOmit: true,
 
-	                states: [],
-	                cities: [],
-	                zipcodes: [],
-	                areacodes: [],
-	                counties: [],
-	                siccodes: [],
-	                keywords: [],
-	                rbdiBusiness: false,
-	                rbdiIndividual: false,
-	                rbdiUnknown: false,
-	                zipForRadius: "",
-	                radiusMiles: "",
-	                companysizes: [],
-	                salesvolumes: [],
-	                chkContactNames: false,
-	                chkPhoneNumbers: false,
-	                chkEmails: false,
-	                chkOmit: true
+	            _random_Data: false,
+	            _count_Data: 0
+	        };
 
-	                , _random_Data: false
-	                , _count_Data: 0
-	            };
-
-	        var _clear_choices = function () {
-
+	        var _clear_choices = function _clear_choices() {
 
 	            _choices.date_start_ = moment().subtract(_months_back, "months").toDate();
 	            _choices.date_end_ = moment().toDate();
-
-
 
 	            _choices.states = [];
 	            _choices.cities = [];
@@ -45965,170 +45854,124 @@ webpackJsonp([1],{
 	            _choices.chkPhoneNumbers = false;
 	            _choices.chkEmails = false;
 	            _choices.chkOmit = true;
-
 	        };
 
-
-
-	        Object.defineProperty(_choices, "bustype",
-	            {
-	                get: function () {
-	                    return InfoFactory.bustypes[_int_bustype - 1];
+	        Object.defineProperty(_choices, "bustype", {
+	            get: function get() {
+	                return InfoFactory.bustypes[_int_bustype - 1];
+	            },
+	            set: function set(value) {
+	                if (value.id == 2) {
+	                    toaster.pop({
+	                        type: 'info',
+	                        body: "Established Business Info temporarily closed !",
+	                        timeout: 0,
+	                        showCloseButton: true
+	                    });
 	                }
-	                , set: function (value) {
-	                    if (value.id == 2)
-	                    {
-	                        toaster.pop(
-	                                    {
-	                                        type: 'info',
-	                                        body: "Established Business Info temporarily closed !",
-	                                        timeout: 0,
-	                                        showCloseButton: true
-	                                    }
-	                                    );
-	                    }
-	                    if (_int_bustype != value.id && value.id != 2) {
-	                        _int_bustype = value.id;
-	                        _clear_choices();
-	                    }
+	                if (_int_bustype != value.id && value.id != 2) {
+	                    _int_bustype = value.id;
+	                    _clear_choices();
 	                }
 	            }
-	                );
+	        });
 
+	        Object.defineProperty(_choices, "date_start", {
+	            get: function get() {
+	                return this._date_start;
+	            },
+	            set: function set(value) {
+	                if (value == undefined) return;
+	                var _old = this._date_start;
+	                var _old_ = this._date_start_;
 
-
-
-
-
-	        Object.defineProperty(_choices, "date_start",
-	            {
-	                get: function () {
-	                    return this._date_start;
+	                try {
+	                    this._date_start = value;
+	                    this._date_start_ = moment(value, 'MM/DD/YYYY').toDate();
+	                } catch (e) {
+	                    console.log('date-start  -->> ', value);
+	                    this._date_start = _old;
+	                    this._date_start_ = _old_;
 	                }
-	                , set: function (value) {
-	                    if (value == undefined) return;
-	                    var _old = this._date_start;
-	                    var _old_ = this._date_start_;
+	            }
+	        });
 
-	                    try {
-	                        this._date_start = value;
-	                        this._date_start_ = moment(value, 'MM/DD/YYYY').toDate();
-	                    }
-	                    catch (e) {
-	                        console.log('date-start  -->> ', value);
-	                        this._date_start = _old;
-	                        this._date_start_ = _old_;
+	        Object.defineProperty(_choices, "date_end", {
+	            get: function get() {
+	                return this._date_end;
+	            },
+	            set: function set(value) {
+	                if (value == undefined) return;
+	                var _old = this._date_end;
+	                var _old_ = this._date_end_;
 
-	                    }
+	                try {
+	                    this._date_end = value;
+	                    this._date_end_ = moment(value, 'MM/DD/YYYY').toDate();
+	                } catch (e) {
+	                    console.log('date-end  -->> ', value);
+	                    this._date_end = _old;
+	                    this._date_end_ = _old_;
 	                }
-	            });
+	            }
+	        });
 
+	        Object.defineProperty(_choices, "date_start_", {
+	            get: function get() {
+	                return this._date_start_;
+	            },
+	            set: function set(value) {
+	                if (value == undefined) return;
+	                var _old = this._date_start;
+	                var _old_ = this._date_start_;
 
-
-
-	        Object.defineProperty(_choices, "date_end",
-	            {
-	                get: function () {
-	                    return this._date_end;
+	                try {
+	                    this._date_start_ = value;
+	                    this.date_start = moment(value).format("MM/DD/YYYY");
+	                } catch (e) {
+	                    console.log('date-start_z -->> ', value);
+	                    this._date_start = _old;
+	                    this._date_start_ = _old_;
 	                }
-	                , set: function (value) {
-	                    if (value == undefined) return;
-	                    var _old = this._date_end;
-	                    var _old_ = this._date_end_;
+	            }
+	        });
 
-	                    try {
-	                        this._date_end = value;
-	                        this._date_end_ = moment(value, 'MM/DD/YYYY').toDate();
-	                    }
-	                    catch (e) {
-	                        console.log('date-end  -->> ', value);
-	                        this._date_end = _old;
-	                        this._date_end_ = _old_;
+	        Object.defineProperty(_choices, "date_end_", {
+	            get: function get() {
+	                return this._date_end_;
+	            },
+	            set: function set(value) {
+	                if (value == undefined) return;
+	                var _old = this._date_end;
+	                var _old_ = this._date_end_;
 
-	                    }
+	                try {
+	                    this._date_end_ = value;
+	                    this.date_end = moment(value).format("MM/DD/YYYY");
+	                } catch (e) {
+	                    console.log('date-end_z -->> ', value);
+	                    this._date_end = _old;
+	                    this._date_end_ = _old_;
 	                }
-	            });
-
-
-
-
-
-
-
-
-
-
-	        Object.defineProperty(_choices, "date_start_",
-	            {
-	                get: function () {
-	                    return this._date_start_;
-	                }
-	                , set: function (value) {
-	                    if (value == undefined) return;
-	                    var _old = this._date_start;
-	                    var _old_ = this._date_start_;
-
-	                    try {
-	                        this._date_start_ = value;
-	                        this.date_start = moment(value).format("MM/DD/YYYY")
-	                    }
-	                    catch (e) {
-	                        console.log('date-start_z -->> ', value);
-	                        this._date_start = _old;
-	                        this._date_start_ = _old_;
-	                    }
-	                }
-	            });
-
-
-
-
-	        Object.defineProperty(_choices, "date_end_",
-	            {
-	                get: function () {
-	                    return this._date_end_;
-	                }
-	                , set: function (value) {
-	                    if (value == undefined) return;
-	                    var _old = this._date_end;
-	                    var _old_ = this._date_end_;
-
-	                    try {
-	                        this._date_end_ = value;
-	                        this.date_end = moment(value).format("MM/DD/YYYY")
-	                    }
-	                    catch (e) {
-	                        console.log('date-end_z -->> ', value);
-	                        this._date_end = _old;
-	                        this._date_end_ = _old_;
-	                    }
-	                }
-	            });
-
+	            }
+	        });
 
 	        /*
 	            $scope.$watch("vm.choices.date_start_", function (new_, old_) {
 	                $timeout(function () { vm.choices.date_start = moment(new_).format("MM/DD/YYYY") }, 0);
 	            });
-
-	            $scope.$watch("vm.choices.date_end_", function (new_, old_) {
+	              $scope.$watch("vm.choices.date_end_", function (new_, old_) {
 	                $timeout(function () { vm.choices.date_end = moment(new_).format("MM/DD/YYYY") }, 0);
 	            });
 	         
 	         */
 
-
 	        var _factory = { choices: _choices, clear_choices: _clear_choices };
 
 	        return _factory;
-
 	    }
 	    _factory.$inject = ["FFD_CONST", "InfoFactory", "toaster"];
-
-
-
-
-	}
+	};
 
 /***/ },
 
@@ -46137,39 +45980,33 @@ webpackJsonp([1],{
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    app.factory('GetResultsFactory', _GetResultsFactory);
 
 	    /* @ngInject */
 
-	    function _GetResultsFactory($http, $q, _, FFD_CONST, ChoicesFactory)
-	    {
-	        var service =
-	            {
-	                getCounters: getcounters
-	                , setdemoviewedflag: setdemoviewedflag
-	                ,getNeedSubscription: getneedsubscription
-	                ,addsearchtemplate: add_search_template
-	                , getlisttemplates: get_list_templates
-	                , getonepagetemplates: get_one_page_templates
-	                , getsearchtemplate: get_search_template
-	                , deletesearchtemplate: delete_search_template
-	                , updatesearchtemplate_mailsettings: update_search_template_mail_settings
-	            };
+	    function _GetResultsFactory($http, $q, _, FFD_CONST, ChoicesFactory) {
+	        var service = {
+	            getCounters: getcounters,
+	            setdemoviewedflag: setdemoviewedflag,
+	            getNeedSubscription: getneedsubscription,
+	            addsearchtemplate: add_search_template,
+	            getlisttemplates: get_list_templates,
+	            getonepagetemplates: get_one_page_templates,
+	            getsearchtemplate: get_search_template,
+	            deletesearchtemplate: delete_search_template,
+	            updatesearchtemplate_mailsettings: update_search_template_mail_settings
+	        };
 
 	        return service;
 
-
-
-	        function getcounters()
-	        {
+	        function getcounters() {
 	            var _choices = ChoicesFactory.choices;
 	            var deferrer = $q.defer();
 
-	//            console.log('getcounters');
-	//            console.log(_choices);
+	            //            console.log('getcounters');
+	            //            console.log(_choices);
 
 	            var request = $http({
 	                method: "post",
@@ -46189,9 +46026,15 @@ webpackJsonp([1],{
 	                    _areacodes: _choices["areacodes"],
 	                    _zipForRadius: _choices["zipForRadius"],
 	                    _radiusMiles: _choices["radiusMiles"],
-	                    _companysizes: _.map(_choices["companysizes"], function (_itm) { return _itm["value"]; }),
-	                    _salesvolumes: _.map(_choices["salesvolumes"], function (_itm) { return _itm["value"]; }),
-	                    _keywords: _.map(_choices["keywords"], function (_itm) { return _itm["KeywordID"]; }),
+	                    _companysizes: _.map(_choices["companysizes"], function (_itm) {
+	                        return _itm["value"];
+	                    }),
+	                    _salesvolumes: _.map(_choices["salesvolumes"], function (_itm) {
+	                        return _itm["value"];
+	                    }),
+	                    _keywords: _.map(_choices["keywords"], function (_itm) {
+	                        return _itm["KeywordID"];
+	                    }),
 	                    _chkContactNames: _choices["chkContactNames"],
 	                    _chkPhoneNumbers: _choices["chkPhoneNumbers"],
 	                    _chkEmails: _choices["chkEmails"]
@@ -46199,16 +46042,13 @@ webpackJsonp([1],{
 	                }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                var _result = data.d;
 	                deferrer.resolve({ count: _result[0], leftcount: _result[1], demo: _result[2], invoiceid: _result[3] });
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject('Error !!!') });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject('Error !!!');
+	            });
 	            return deferrer.promise;
-
 	        }
 
 	        function setdemoviewedflag() {
@@ -46220,15 +46060,14 @@ webpackJsonp([1],{
 	                data: {}
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                var _result = data.d;
 	                deferrer.resolve({ demoviewedflag: _result._demoviewed });
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject('Error !!!') });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject('Error !!!');
+	            });
 
 	            return deferrer.promise;
-
 	        }
 
 	        function getneedsubscription() {
@@ -46240,15 +46079,12 @@ webpackJsonp([1],{
 	                data: {}
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve({ needsubscription: data.d });
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject('Error !!!') });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject('Error !!!');
+	            });
 	            return deferrer.promise;
-
 	        }
 
 	        function get_search_template(_id) {
@@ -46260,19 +46096,14 @@ webpackJsonp([1],{
 	                data: { _templateID: _id }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject('Error !!!') });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject('Error !!!');
+	            });
 
 	            return deferrer.promise;
-
 	        }
-
-
 
 	        function get_list_templates() {
 	            var deferrer = $q.defer();
@@ -46283,20 +46114,16 @@ webpackJsonp([1],{
 	                data: {}
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject('Error !!!') });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject('Error !!!');
+	            });
 
 	            return deferrer.promise;
-
 	        }
 
-
-
-	        function get_one_page_templates(_page, _sizepage)
-	        {
+	        function get_one_page_templates(_page, _sizepage) {
 	            var deferrer = $q.defer();
 	            var _data = { _page: _page, _sizepage: _sizepage };
 
@@ -46306,9 +46133,7 @@ webpackJsonp([1],{
 	                data: _data
 	            });
 
-	            request
-	            .success(function (data, status, headers, config)
-	            {
+	            request.success(function (data, status, headers, config) {
 	                console.log(data);
 	                var page = data.d.data["_page"];
 	                var cntpages = data.d.data["_cntpages"];
@@ -46317,28 +46142,19 @@ webpackJsonp([1],{
 	                var _result = { page: page, cntpages: cntpages, records: _records, cntrecords: cntrecords };
 	                console.log(_result);
 	                deferrer.resolve(_result);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject('Error !!!') });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject('Error !!!');
+	            });
 
 	            return deferrer.promise;
-
 	        }
 
-
-	        
-
-
-
-
-
-	        function add_search_template(_name, _load, _random, _limit)
-	        {
+	        function add_search_template(_name, _load, _random, _limit) {
 	            var deferrer = $q.defer();
 	            var _choices = ChoicesFactory.choices;
 
-	            getcounters(_choices).then(
-	                function (_data) {
-	                    if (true /*_data.result != "OK"*/) {
+	            getcounters(_choices).then(function (_data) {
+	                if (true /*_data.result != "OK"*/) {
 	                        //                        deferrer.resolve(_data);
 	                        //                        return;
 
@@ -46348,16 +46164,14 @@ webpackJsonp([1],{
 	                            data: { _name: _name, _daLoad: _load, _daRandomRecords: _random, _daRecordLimit: _limit }
 	                        });
 
-	                        _request
-	                        .success(function (data, status, headers, config) {
+	                        _request.success(function (data, status, headers, config) {
 	                            console.log("AddSearchTemplate data>> ", data);
 	                            deferrer.resolve({ result: "OK" });
-	                        })
-	                        .error(function (data, status, headers, config) { console.log('AddSearchTemplate error'); deferrer.reject('Error !!!') });
+	                        }).error(function (data, status, headers, config) {
+	                            console.log('AddSearchTemplate error');deferrer.reject('Error !!!');
+	                        });
 	                    }
-
-	                }
-	                );
+	            });
 	            return deferrer.promise;
 	        }
 
@@ -46370,16 +46184,13 @@ webpackJsonp([1],{
 	                data: { _templateID: _id, _daLoad: _load, _daRandomRecords: _random, _daRecordLimit: _limit }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject('Error !!!') });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject('Error !!!');
+	            });
 
 	            return deferrer.promise;
-
 	        }
 
 	        function delete_search_template(_id) {
@@ -46391,22 +46202,17 @@ webpackJsonp([1],{
 	                data: { _templateID: _id }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject('Error !!!') });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject('Error !!!');
+	            });
 
 	            return deferrer.promise;
-
 	        }
-
-
 	    }
 	    _GetResultsFactory.$inject = ["$http", "$q", "_", "FFD_CONST", "ChoicesFactory"];
-	}
+	};
 
 /***/ },
 
@@ -46415,136 +46221,89 @@ webpackJsonp([1],{
 
 	'use strict';
 
-
 	module.exports = function (app) {
-	    app.service('PreviewDataService', _PreviewDataService);
+	            app.service('PreviewDataService', _PreviewDataService);
 
+	            /* @ngInject */
 
-	    /* @ngInject */
+	            function _PreviewDataService($http, $q, _, FFD_CONST, GetResultsFactory, ChoicesFactory) {
 
-	    function _PreviewDataService($http, $q, _, FFD_CONST, GetResultsFactory, ChoicesFactory) {
+	                        var _params_ns = {
+	                                    coldefs: [
+	                                    //            { name: 'ClientID', visible: false },
+	                                    { name: 'Phone', visible: true, width: 100 }, { name: 'FirstName', visible: true, width: 150 }, { name: 'LastName', visible: true, width: 150 }, { name: 'CompanyName', visible: true, width: 300 }, { name: 'Address', visible: true, width: 250 }, { name: 'City', visible: true, width: 150 }, { name: 'State', visible: true, width: 100 }, { name: 'Zip5', visible: true, width: 100 }, { name: 'Zip4', visible: true, width: 100 }, { name: 'Email', displayName: 'Email Address', visible: true, width: 150 },
+	                                    //            { name: 'Phone', visible: true, width: 100 },
+	                                    //            { name: 'SICCODE', visible: false },
+	                                    { name: 'ImportDate', displayName: 'Record Release Date', visible: true, width: 150 }, { name: 'LoadDate', displayName: 'Business Open Date', visible: true, width: 150 }, { name: 'PhoneAppendDate', displayName: 'Phone/E-mail Append Date', visible: true, width: 150 }
 
-	        var _params_ns =
-	            {
-	                coldefs: [
-	//            { name: 'ClientID', visible: false },
-	            { name: 'Phone', visible: true, width: 100 },
-	            { name: 'FirstName', visible: true, width: 150 },
-	            { name: 'LastName', visible: true, width: 150 },
-	            { name: 'CompanyName', visible: true, width: 300 },
-	            { name: 'Address', visible: true, width: 250 },
-	            { name: 'City', visible: true, width: 150 },
-	            { name: 'State', visible: true, width: 100 },
-	            { name: 'Zip5', visible: true, width: 100 },
-	            { name: 'Zip4', visible: true, width: 100 },
-	            { name: 'Email', displayName: 'Email Address', visible: true, width: 150 },
-	//            { name: 'Phone', visible: true, width: 100 },
-	//            { name: 'SICCODE', visible: false },
-	            { name: 'ImportDate', displayName: 'Record Release Date', visible: true, width: 150 },
-	            { name: 'LoadDate', displayName: 'Business Open Date', visible: true, width: 150 },
-	            { name: 'PhoneAppendDate', displayName: 'Phone/E-mail Append Date', visible: true, width: 150 }
+	                                    //            { name: 'CountyFIPS', visible: false },
+	                                    //            { name: 'RBDI', visible: false },
+	                                    //            { name: 'AreaCode', visible: false }
+	                                    ],
+	                                    name_for_save: 'new_bus_grid_inf00'
+	                        };
 
+	                        var _params_es = {
+	                                    coldefs: [
+	                                    //            { name: 'ClientID', visible: false },
+	                                    { name: 'FirstName', visible: true, width: 150 }, { name: 'LastName', visible: true, width: 150 },
+	                                    //            { name: 'Keywords', visible: false },
+	                                    { name: 'Title', width: 250 }, { name: 'BusName', visible: true, width: 250 }, { name: 'Address', visible: true, width: 250 }, { name: 'City', visible: true, width: 100 }, { name: 'State', visible: true, width: 100 }, { name: 'Zip', visible: true, width: 100 }, { name: 'Phone', visible: true, width: 100 }],
+	                                    name_for_save: 'est_bus_grid_inf00'
+	                        };
 
-	            
-	//            { name: 'CountyFIPS', visible: false },
-	//            { name: 'RBDI', visible: false },
-	//            { name: 'AreaCode', visible: false }
-	                ],
-	                name_for_save : 'new_bus_grid_inf00'
-	            };
+	                        var sizepage = 10;
+	                        var page = 1;
+	                        var cntpages = 0;
+	                        var cntrecords = 0;
+	                        var _records = [];
+	                        var _demo = false;
 
+	                        this.getPage = getPage;
+	                        this.getParamsForPreviewData = _getParamsForPreviewData;
 
-	        var _params_es =
-	            {
-	                coldefs: [
-	//            { name: 'ClientID', visible: false },
-	            { name: 'FirstName', visible: true, width: 150 },
-	            { name: 'LastName', visible: true, width: 150 },
-	//            { name: 'Keywords', visible: false },
-	            { name: 'Title', width: 250 },
-	            { name: 'BusName', visible: true, width: 250 },
-	            { name: 'Address', visible: true, width: 250 },
-	            { name: 'City', visible: true, width: 100 },
-	            { name: 'State', visible: true, width: 100 },
-	            { name: 'Zip', visible: true, width: 100 },
-	            { name: 'Phone', visible: true, width: 100 },
-	//            { name: 'SicCode', visible: false },
-	//            { name: 'CountyFIPS', visible: false },
-	//            { name: 'AreaCode', visible: false },
-	//            { name: 'Employees', visible: false },
-	//            { name: 'Sales', visible: false }
-	//            { name: 'RBDI', visible: false }
-	                ],
-	                name_for_save : 'est_bus_grid_inf00'
-	            };
+	                        function getPage(_page, _sizepage, _init) {
 
+	                                    var _choices = ChoicesFactory.choices;
+	                                    var _id_type = _choices.bustype.id;
 
-	        var sizepage = 10;
-	        var page = 1;
-	        var cntpages = 0;
-	        var cntrecords = 0
-	        var _records = [];
-	        var _demo = false;
+	                                    var _url = FFD_CONST.API_BASE_URL + (_id_type == 1 ? "GetOnePageNewBusiness" : "GetOnePageEstBusiness");
 
+	                                    var def = $q.defer();
 
+	                                    var request = $http({
+	                                                method: "post",
+	                                                url: _url,
+	                                                data: { _page: _page, _sizepage: _sizepage, _init: _init, _random: _choices._random_Data, _count: _choices._count_Data }
+	                                    });
 
+	                                    request.success(function (data, status, headers, config) {
 
-	        this.getPage = getPage;
-	        this.getParamsForPreviewData = _getParamsForPreviewData;
+	                                                console.log(data);
 
-	        function getPage(_page, _sizepage, _init) {
+	                                                _demo = data.d.data["_demo"];
+	                                                page = data.d.data["_page"];
+	                                                cntpages = data.d.data["_cntpages"];
+	                                                _records = data.d.data["_records"];
+	                                                cntrecords = data.d.data["_cntrecords"];
+	                                                var _result = { page: page, cntpages: cntpages, records: _records, cntrecords: cntrecords, demo: _demo };
+	                                                console.log(_result);
+	                                                def.resolve(_result);
+	                                    }).error(function (data, status, headers, config) {
+	                                                def.reject("Failed to get data");
+	                                    });
 
+	                                    return def.promise;
+	                        }
 
-	            var _choices = ChoicesFactory.choices;
-	            var _id_type = _choices.bustype.id;
-
-	            var _url = FFD_CONST.API_BASE_URL + ((_id_type == 1) ? "GetOnePageNewBusiness" : "GetOnePageEstBusiness");
-
-
-	            var def = $q.defer();   
-
-	            var request = $http({
-	                method: "post",
-	                url: _url,
-	                data: { _page: _page, _sizepage: _sizepage, _init: _init, _random: _choices._random_Data, _count: _choices._count_Data }
-	            });
-
-
-
-	            request
-	            .success(function (data, status, headers, config) {
-
-	                console.log(data);
-
-	                _demo = data.d.data["_demo"];
-	                page = data.d.data["_page"];
-	                cntpages = data.d.data["_cntpages"];
-	                _records = data.d.data["_records"];
-	                cntrecords = data.d.data["_cntrecords"];
-	                var _result = { page: page, cntpages: cntpages, records: _records, cntrecords: cntrecords, demo: _demo };
-	                console.log(_result);
-	                def.resolve(_result);
-	            })
-	            .error(function (data, status, headers, config) { def.reject("Failed to get data"); });
-
-	            return def.promise;
-	        }
-
-
-	        function _getParamsForPreviewData()
-	        {
-	            var _choices = ChoicesFactory.choices;
-	            var _id_type = _choices.bustype.id;
-	            return (_id_type == 1) ? _params_ns : _params_es;
-	        }
-
-
-
-
-	    }
-	    _PreviewDataService.$inject = ["$http", "$q", "_", "FFD_CONST", "GetResultsFactory", "ChoicesFactory"];
-
-	}
+	                        function _getParamsForPreviewData() {
+	                                    var _choices = ChoicesFactory.choices;
+	                                    var _id_type = _choices.bustype.id;
+	                                    return _id_type == 1 ? _params_ns : _params_es;
+	                        }
+	            }
+	            _PreviewDataService.$inject = ["$http", "$q", "_", "FFD_CONST", "GetResultsFactory", "ChoicesFactory"];
+	};
 
 /***/ },
 
@@ -46553,38 +46312,27 @@ webpackJsonp([1],{
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    app.service('AdminDataService', _AdminDataService);
 
 	    /* @ngInject */
-	    function _AdminDataService(
-	                                $http, $q,
-	                                _, FFD_CONST,
-	                                createDialog,
-	                                GetResultsFactory,
-	                                ChoicesFactory) {
-
-
+	    function _AdminDataService($http, $q, _, FFD_CONST, createDialog, GetResultsFactory, ChoicesFactory) {
 
 	        var sizepage = 10;
 	        var page = 1;
 	        var cntpages = 0;
-	        var cntrecords = 0
+	        var cntrecords = 0;
 	        var _records = [];
 
 	        this.getOnePageOfAllUsers = _getOnePageOfAllUsers;
 	        this.ChangeSubscriptionCount = _change_subscription_count;
 	        this.getUserInfo4Id = _getUserInfo4Id;
 
+	        function _getOnePageOfAllUsers(_page, _sizepage, _init, _cond, _sort) {
 
-	        function _getOnePageOfAllUsers(_page, _sizepage, _init, _cond,_sort)
-	        {
-
-
-	            var _url = FFD_CONST.API_BASE_URL +  "GetOnePageOfAllUsers";
-	//            var _url = "/api/Admin/" +  "GetOnePageOfAllUsers";
+	            var _url = FFD_CONST.API_BASE_URL + "GetOnePageOfAllUsers";
+	            //            var _url = "/api/Admin/" +  "GetOnePageOfAllUsers";
 
 
 	            var def = $q.defer();
@@ -46592,12 +46340,10 @@ webpackJsonp([1],{
 	            var request = $http({
 	                method: "post",
 	                url: _url,
-	                data: { _page: _page, _sizepage: _sizepage, _cond: _cond, _init: _init,_sort:_sort }
+	                data: { _page: _page, _sizepage: _sizepage, _cond: _cond, _init: _init, _sort: _sort }
 	            });
 
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 
 	                page = data.d.data["_page"];
 	                cntpages = data.d.data["_cntpages"];
@@ -46605,25 +46351,16 @@ webpackJsonp([1],{
 	                cntrecords = data.d.data["_cntrecords"];
 	                var _result = { page: page, cntpages: cntpages, records: _records, cntrecords: cntrecords };
 	                def.resolve(_result);
-	            })
-	            .error(function (data, status, headers, config)
-	            {
+	            }).error(function (data, status, headers, config) {
 	                def.reject("Failed to get data");
 	            });
 
 	            return def.promise;
-
 	        }
 
+	        function _getUserInfo4Id(_userid) {
 
-
-
-
-	        function _getUserInfo4Id(_userid)
-	        {
-	            
 	            var _url = FFD_CONST.API_BASE_URL + "getUserInfo4Id";
-	            
 
 	            var def = $q.defer();
 
@@ -46633,68 +46370,48 @@ webpackJsonp([1],{
 	                data: { _userid: _userid }
 	            });
 
-
-	            request
-	            .success(function (data, status, headers, config)
-	            {
-	                var _result =
-	                {
+	            request.success(function (data, status, headers, config) {
+	                var _result = {
 	                    changeCC: data.d["changeCC"],
 	                    createSubscr: data.d["createSubscr"],
 	                    leftCount: data.d["leftCount"]
 	                };
 	                def.resolve(_result);
-	            })
-	            .error(function (data, status, headers, config) {
+	            }).error(function (data, status, headers, config) {
 	                def.reject("Failed to get data");
 	            });
 
 	            return def.promise;
-
 	        }
 
-
-
-
-
-
-
-	        function _change_subscription_count(_userid, _leftcount)
-	        {
-	            createDialog
-	                 (
-	                     {
-	                         id: 'SpecialOffer',
-	                         css: { top: '100px', margin: '0 auto' },
-	                         template: __webpack_require__(310),
-	                         footerTemplate: __webpack_require__(311),
-	                         backdrop: true,
-	                         controller: 'ChangeSubscriptionCountController',
-	                         success:
-	                             {
-	                                 label: 'Ok', // 'Preview List',
-	                                 fn: function ()
-	                                 { 
-	                                     this.change(_userid);
-	                                 }
-	                                 //                                 fn: f_suc
-	                             },
-	                         cancel:
-	                             {
-	                                 label: 'Cancel',
-	                                 fn: function () { }
-	                                 //                                 fn: f_can
-	                             }
-	                     },
-	                     {
-	                         userid_    : _userid,
-	                         leftCount_ : _leftcount
-	                     }
-	                 );
+	        function _change_subscription_count(_userid, _leftcount) {
+	            createDialog({
+	                id: 'SpecialOffer',
+	                css: { top: '100px', margin: '0 auto' },
+	                template: __webpack_require__(310),
+	                footerTemplate: __webpack_require__(311),
+	                backdrop: true,
+	                controller: 'ChangeSubscriptionCountController',
+	                success: {
+	                    label: 'Ok', // 'Preview List',
+	                    fn: function fn() {
+	                        this.change(_userid);
+	                    }
+	                    //                                 fn: f_suc
+	                },
+	                cancel: {
+	                    label: 'Cancel',
+	                    fn: function fn() {}
+	                    //                                 fn: f_can
+	                }
+	            }, {
+	                userid_: _userid,
+	                leftCount_: _leftcount
+	            });
 	        }
 	    }
 	    _AdminDataService.$inject = ["$http", "$q", "_", "FFD_CONST", "createDialog", "GetResultsFactory", "ChoicesFactory"];
-	}
+	};
 
 /***/ },
 
@@ -46717,20 +46434,15 @@ webpackJsonp([1],{
 
 	'use strict';
 
+	module.exports = function (app) {
 
-	module.exports = function (app)
-	{
+	    app.service('LoginService', /* @ngInject */LoginService);
 
-	    
-
-	    app.service('LoginService', /* @ngInject */ LoginService);
-
-	//    app.run( /* @ngInject */ _check_security);
+	    //    app.run( /* @ngInject */ _check_security);
 
 	    //    LoginService.$inject = ['$http', '$rootScope', '$state', '$q', '$sessionStorage'];
 
-	    function LoginService($http, $rootScope, $state, $q, $sessionStorage, toaster ,FFD_CONST, ChoicesFactory)
-	    {
+	    function LoginService($http, $rootScope, $state, $q, $sessionStorage, toaster, FFD_CONST, ChoicesFactory) {
 	        var _base_url = FFD_CONST.API_BASE_URL;
 
 	        this._http = $http;
@@ -46742,9 +46454,8 @@ webpackJsonp([1],{
 
 	        this.success_params = null;
 	        this.cancel_params = null;
-	        
 
-	//        this.Is_Logged = function () { return this.isLogged; };
+	        //        this.Is_Logged = function () { return this.isLogged; };
 
 	        this.login = Login;
 	        this.logout = Logout;
@@ -46769,28 +46480,22 @@ webpackJsonp([1],{
 	        this.switchsuperadminrole = SwitchSuperAdminRole;
 	        this.deleteuser = DeleteUser;
 
-
-
-	        function EnterLoginForm(_success_state, _success_params, _cancel_state, _cancel_params)
-	        {
+	        function EnterLoginForm(_success_state, _success_params, _cancel_state, _cancel_params) {
 	            this.success_state = _success_state;
 	            this.success_params = _success_params || null;
 
-
-	            if ($state.get(_success_state).noauthenticate)
-	            {
+	            if ($state.get(_success_state).noauthenticate) {
 	                this.success_state = "home";
 	                this.success_params = null;
 	            }
 
 	            this.cancel_state = _cancel_state;
-	            this.cancel_params = _cancel_params||null;
+	            this.cancel_params = _cancel_params || null;
 
 	            $state.go('login');
 	        };
 
-	        function Login(_user, _password, _supressAnotherActiveSession)
-	        {
+	        function Login(_user, _password, _supressAnotherActiveSession) {
 	            var deferrer = $q.defer();
 	            var self = this;
 
@@ -46800,22 +46505,15 @@ webpackJsonp([1],{
 	                data: { _name: _user, _password: _password, _supressAnotherActiveSession: _supressAnotherActiveSession }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
 	        };
 
-
-
-
-	        function checkSecondUser()
-	        {
+	        function checkSecondUser() {
 	            var deferrer = $q.defer();
 	            var self = this;
 
@@ -46825,25 +46523,19 @@ webpackJsonp([1],{
 	                data: {}
 	            });
 
-	            request
-	            .success(function (data, status, headers, config)
-	            {
+	            request.success(function (data, status, headers, config) {
 	                var _data = data.d;
-	                if (_data.result == "ERROR")
-	                {
-	                    $rootScope.$broadcast('ChangeUserStatus', { username: '' , islogged: false, isadmin: false });
+	                if (_data.result == "ERROR") {
+	                    $rootScope.$broadcast('ChangeUserStatus', { username: '', islogged: false, isadmin: false });
 	                }
 
 	                deferrer.resolve(_data);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 
 	            return deferrer.promise;
-
 	        }
-
-
-
 
 	        function getUserInfo() {
 	            var deferrer = $q.defer();
@@ -46855,12 +46547,9 @@ webpackJsonp([1],{
 	                data: {}
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
-	                self.username = data.d['Name']||'';
-	//                self.isLogged = (self.username.toString().trim().length > 0);
+	            request.success(function (data, status, headers, config) {
+	                self.username = data.d['Name'] || '';
+	                //                self.isLogged = (self.username.toString().trim().length > 0);
 	                self.isLogged = data.d['IsLogged'];
 	                self.isAdmin = data.d['IsAdmin'];
 	                self.isSuperAdmin = data.d['IsSuperAdmin'];
@@ -46877,33 +46566,25 @@ webpackJsonp([1],{
 	                    createSubscr: self.createSubscr,
 	                    InvoiceID: self.InvoiceID,
 	                    leftcount: self.LeftCount
-	            };
+	                };
 
-
-	                if (data.d['DetailInfo']) { toaster.pop("info", data.d['DetailInfo']); }
-	                console.log('userinfo>',_data);
-	                if ($state.current.authenticate && (!_data.islogged))
-	                {
-	                    console.log("enter login")
-	                    self.enterloginform($state.current.name,null, "home", null);
+	                if (data.d['DetailInfo']) {
+	                    toaster.pop("info", data.d['DetailInfo']);
 	                }
-
-
-
+	                console.log('userinfo>', _data);
+	                if ($state.current.authenticate && !_data.islogged) {
+	                    console.log("enter login");
+	                    self.enterloginform($state.current.name, null, "home", null);
+	                }
 
 	                $rootScope.$broadcast('ChangeUserStatus', _data);
 	                deferrer.resolve(_data);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 
 	            return deferrer.promise;
-
 	        };
-
-
-
-
-
 
 	        function getUserDetailInfo(_username) {
 	            var deferrer = $q.defer();
@@ -46912,29 +46593,18 @@ webpackJsonp([1],{
 	            var request = $http({
 	                method: "post",
 	                url: _base_url + "GetUserDetailInfo",
-	                data: { UserName: _username?_username:"" }
+	                data: { UserName: _username ? _username : "" }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                self.userinfo = data.d;
 	                deferrer.resolve(self.userinfo);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 
 	            return deferrer.promise;
-
 	        };
-
-
-
-
-
-
-
-
 
 	        function Logout() {
 	            var deferrer = $q.defer();
@@ -46946,12 +46616,9 @@ webpackJsonp([1],{
 	                data: {}
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                self.username = data.d;
-	                self.isLogged = (data.d.toString().trim().length > 0);
+	                self.isLogged = data.d.toString().trim().length > 0;
 	                deferrer.resolve({ username: self.username, islogged: self.isLogged });
 	                console.log($state);
 	                console.log($state.current.authenticate, !self.isLogged);
@@ -46959,24 +46626,19 @@ webpackJsonp([1],{
 	                //                if ($state.current.authenticate && !self.isLogged)
 
 	                if ($state.current.authenticate) {
-	                    console.log("enter login")
+	                    console.log("enter login");
 	                    self.enterloginform($state.current.name, "home");
-
 	                }
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 
 	            return deferrer.promise;
-
-
 	        }
 
-
-	        function CreateUser(_userdata) 
-	        {
+	        function CreateUser(_userdata) {
 	            //            var _srchdata = $sessionStorage['searchform'];
 	            var _srchdata = ChoicesFactory.choices;
-
 
 	            if (_srchdata == undefined) _srchdata = {};
 	            var _udata = encodeURIComponent(angular.toJson(_srchdata));
@@ -46990,69 +46652,51 @@ webpackJsonp([1],{
 	                data: { _userdata: _userdata, _udata: _udata }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
 	        }
 
-
-
-	        function UpdateUserInfo(_userdata,_username) {
+	        function UpdateUserInfo(_userdata, _username) {
 	            var deferrer = $q.defer();
 	            var self = this;
 
-	            var request = $http
-	                ({
-	                    method: "post",
-	                    url: _base_url + "UpdateUserInfo",
-	                    data: { UserName: _username?_username:"", data: _userdata }
-	                });
+	            var request = $http({
+	                method: "post",
+	                url: _base_url + "UpdateUserInfo",
+	                data: { UserName: _username ? _username : "", data: _userdata }
+	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
 	        }
 
-
-
-	        function GetActiveSubscriptionFullInfo()
-	        {
+	        function GetActiveSubscriptionFullInfo() {
 	            var deferrer = $q.defer();
 	            var self = this;
 
 	            var request = $http({
 	                method: "post",
 	                url: _base_url + "GetActiveSubscriptionFullInfo",
-	                data: {  }
+	                data: {}
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
 	        }
 
-
-
-
-
-	        function CreateSubscription(_userdata)
-	        {
+	        function CreateSubscription(_userdata) {
 	            var deferrer = $q.defer();
 	            var self = this;
 
@@ -47062,17 +46706,13 @@ webpackJsonp([1],{
 	                data: { _userdata: _userdata }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
 	        }
-
-
-
 
 	        function CreatePayPalSubscription(_userdata) {
 	            var deferrer = $q.defer();
@@ -47084,13 +46724,12 @@ webpackJsonp([1],{
 	                data: { _userdata: _userdata }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
 	        }
 
 	        function UnSubscribe(_userid) {
@@ -47103,18 +46742,15 @@ webpackJsonp([1],{
 	                data: { _userid: _userid, _sendemail: true }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
 	        }
 
-
-
-	        function UnSubscribe_wo_email(_userid)
-	        {
+	        function UnSubscribe_wo_email(_userid) {
 	            var deferrer = $q.defer();
 	            var self = this;
 
@@ -47124,17 +46760,13 @@ webpackJsonp([1],{
 	                data: { _userid: _userid, _sendemail: false }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
 	        }
-
-
-
-
 
 	        function ChangeCreditCardData(_userdata) {
 	            var deferrer = $q.defer();
@@ -47146,17 +46778,13 @@ webpackJsonp([1],{
 	                data: { _userdata: _userdata }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
 	        }
-
-
-
 
 	        function _ConfirmRegistration(memberID) {
 	            //            return $q.when({ result:"OK"});
@@ -47169,22 +46797,15 @@ webpackJsonp([1],{
 	                data: { _memberID: memberID }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
 	        }
 
-
-
-
-	        function ResetPassword(_email)
-	        {
+	        function ResetPassword(_email) {
 	            var deferrer = $q.defer();
 	            var self = this;
 
@@ -47194,19 +46815,15 @@ webpackJsonp([1],{
 	                data: { _email: _email }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
 	        }
 
-
-
-
-	        function SwitchAdminRole(_userid)
-	        {
+	        function SwitchAdminRole(_userid) {
 	            var deferrer = $q.defer();
 	            var self = this;
 
@@ -47216,15 +46833,13 @@ webpackJsonp([1],{
 	                data: { _userid: _userid }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
 	        }
-
-
 
 	        function SwitchSuperAdminRole(_userid) {
 	            var deferrer = $q.defer();
@@ -47236,17 +46851,15 @@ webpackJsonp([1],{
 	                data: { _userid: _userid }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
 	        }
 
-
-	        function SwitchActiveUser(_userid)
-	        {
+	        function SwitchActiveUser(_userid) {
 	            var deferrer = $q.defer();
 	            var self = this;
 
@@ -47256,14 +46869,13 @@ webpackJsonp([1],{
 	                data: { _userid: _userid }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
 	        }
-
 
 	        function DeleteUser(_userid) {
 	            var deferrer = $q.defer();
@@ -47275,15 +46887,13 @@ webpackJsonp([1],{
 	                data: { _userid: _userid }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
 	        }
-
-
 
 	        function ChangePassword(old_p, new_p) {
 	            var deferrer = $q.defer();
@@ -47295,42 +46905,27 @@ webpackJsonp([1],{
 	                data: { old_Password: old_p, new_Password: new_p }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
 	        }
-
-
 	    }
 	    LoginService.$inject = ["$http", "$rootScope", "$state", "$q", "$sessionStorage", "toaster", "FFD_CONST", "ChoicesFactory"];
 
-	    function _check_security($rootScope, LoginService)     
-	    {
-	        $rootScope.$on('$stateChangeStart',
-	              function (event, toState, toParams, fromState, fromParams)
-	              {
-	                  LoginService.getuserinfo()
-	                             .then(function (data) {
-	                                 if (toState.authenticate && !data.islogged)
-	                                 {
-	                                     event.preventDefault();
-	                                     LoginService.enterloginform(toState.name, toParams , fromState.name, fromParams);
-	                                 }
-	                             });
-	              }
-	            );
-
+	    function _check_security($rootScope, LoginService) {
+	        $rootScope.$on('$stateChangeStart', function (event, toState, toParams, fromState, fromParams) {
+	            LoginService.getuserinfo().then(function (data) {
+	                if (toState.authenticate && !data.islogged) {
+	                    event.preventDefault();
+	                    LoginService.enterloginform(toState.name, toParams, fromState.name, fromParams);
+	                }
+	            });
+	        });
 	    }
-
-
-
-
-	}
+	};
 
 /***/ },
 
@@ -47339,13 +46934,13 @@ webpackJsonp([1],{
 
 	'use strict';
 
-	module.exports = function (app)
-	{
-	    app.directive('popBodyTemplate01', function () { return { template: __webpack_require__(314) }; });
+	module.exports = function (app) {
+	    app.directive('popBodyTemplate01', function () {
+	        return { template: __webpack_require__(314) };
+	    });
 	    __webpack_require__(315)(app);
 	    __webpack_require__(316)(app);
-	}
-
+	};
 
 /***/ },
 
@@ -47361,16 +46956,13 @@ webpackJsonp([1],{
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 
 	    app.controller('PreviewMapController', PreviewMapController);
 
 	    /* @ngInject */
 
-	    function PreviewMapController(_, $scope, $location, points, toaster, $timeout)
-	    {
+	    function PreviewMapController(_, $scope, $location, points, toaster, $timeout) {
 	        /* jshint validthis:true */
 	        var vm = this;
 	        $scope.points = points;
@@ -47379,117 +46971,90 @@ webpackJsonp([1],{
 
 	        var map;
 
-
-	        function AutoCenter()
-	        {
+	        function AutoCenter() {
 	            //  Create a new viewpoint bound
 	            var bounds = new google.maps.LatLngBounds();
 
 	            //  Go through each...
 
-	//            $.each($scope.markers, function (index, marker)             
-	            angular.forEach($scope.markers, function (marker, index)
-	            {
+	            //            $.each($scope.markers, function (index, marker)             
+	            angular.forEach($scope.markers, function (marker, index) {
 	                bounds.extend(marker.position);
 	            });
 	            //  Fit these bounds to the map
 	            map.fitBounds(bounds);
 	        }
 
-
-
-	        $scope.$on('mapInitialized', function (event, evtMap)
-	        {
+	        $scope.$on('mapInitialized', function (event, evtMap) {
 	            map = evtMap;
 
 	            var _x = _.filter($scope.points, 'position');
-	            var _slat = 0, _slng = 0;
-	            _.forEach(_x, function (itm) { _slat += itm.position.lat(); _slng += itm.position.lng(); });
+	            var _slat = 0,
+	                _slng = 0;
+	            _.forEach(_x, function (itm) {
+	                _slat += itm.position.lat();_slng += itm.position.lng();
+	            });
 	            var _avglat = _slat / _x.length;
 	            var _avglng = _slng / _x.length;
 	            var _center = new google.maps.LatLng(_avglat, _avglng);
 	            $scope.center = _center.toUrlValue();
 	            var options = {
-	//                'zoom': 13,
-	//                'center': _center,
+	                //                'zoom': 13,
+	                //                'center': _center,
 	                mapTypeId: google.maps.MapTypeId.ROADMAP
 	            };
 
-	            var makemarker = function (itm)
-	            { 
-	                return new google.maps.Marker(
-	                    {
-	                        position: itm.position,
-	                        title: itm.busname,
-	                        html: "<b>" + itm.busname + "</b><br/>" + itm.address
-	                    })
+	            var makemarker = function makemarker(itm) {
+	                return new google.maps.Marker({
+	                    position: itm.position,
+	                    title: itm.busname,
+	                    html: "<b>" + itm.busname + "</b><br/>" + itm.address
+	                });
 	            };
 
-	            $scope.markers = _.map(_x, makemarker );
+	            $scope.markers = _.map(_x, makemarker);
 	            $scope.markerClusterer = new MarkerClusterer(map, $scope.markers, options);
 	            AutoCenter();
-
 
 	            var infowindow = null;
 
 	            /* now inside your initialise function */
-	            infowindow = new google.maps.InfoWindow
-	                ({
-	                    content: "holding..."
-	                });
-
-	            for (var i = 0; i < $scope.markers.length; i++)
-	            {
-	                var marker = $scope.markers[i];
-	            google.maps.event.addListener(marker, 'click', function ()
-	            {
-	                // where I have added .html to the marker object.
-	                infowindow.setContent(this.html);
-	                infowindow.open(map, this);
+	            infowindow = new google.maps.InfoWindow({
+	                content: "holding..."
 	            });
+
+	            for (var i = 0; i < $scope.markers.length; i++) {
+	                var marker = $scope.markers[i];
+	                google.maps.event.addListener(marker, 'click', function () {
+	                    // where I have added .html to the marker object.
+	                    infowindow.setContent(this.html);
+	                    infowindow.open(map, this);
+	                });
 	            }
 
-
-
-
-
-
-	            if (_x.length < $scope.points.length)
-	            {
+	            if (_x.length < $scope.points.length) {
 	                var _msg = "Next points are not recognized for geolocation";
 	                var _indx = 0;
 	                var _itms = [];
-	                _.forEach($scope.points, function (itm) { if (!itm.position) _itms.push({ busname: itm.busname, address: itm.address });  });
+	                _.forEach($scope.points, function (itm) {
+	                    if (!itm.position) _itms.push({ busname: itm.busname, address: itm.address });
+	                });
 	                $timeout(function () {
 
-	                    toaster.pop(
-	                        {
-	                            type: 'error',
-	                            title: 'ERROR !!!?',
-	                            body: 'pop-body-template01',   
-	                            directiveData:  _itms, 
-	                            bodyOutputType: 'directive',
-	                            timeOut: 45000
-	                        });
-
-
-
-
-
+	                    toaster.pop({
+	                        type: 'error',
+	                        title: 'ERROR !!!?',
+	                        body: 'pop-body-template01',
+	                        directiveData: _itms,
+	                        bodyOutputType: 'directive',
+	                        timeOut: 45000
+	                    });
 	                }, 1000);
-	                
 	            }
-
 	        });
-
-
 	    }
 	    PreviewMapController.$inject = ["_", "$scope", "$location", "points", "toaster", "$timeout"];
-
-
-
-
-	}
+	};
 
 /***/ },
 
@@ -47498,102 +47063,76 @@ webpackJsonp([1],{
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    app.service('GoogleGeoService', GoogleGeoService);
 
 	    /* @ngInject */
 
-
 	    function GoogleGeoService($http, $q, GeoCoder, createDialog, FFD_CONST, _) {
 
 	        this.ShowMap = show_map;
 
-
 	        var _dynamicMarkers = [];
 
-	        var _success = function (_value) {
-	            var _xxx =
-	            function (_dx) {
-	                var latlng = new google.maps.LatLng(
-	                                                    _dx[0].geometry.location.lat(),
-	                                                    _dx[0].geometry.location.lng()
-	                                                    );
-	                _dynamicMarkers.push(
-	                                        {
-	                                            address: _value.address,
-	                                            busname: _value.busname,
-	                                            position: latlng
-	                                        }
-	                                    );
+	        var _success = function _success(_value) {
+	            var _xxx = function _xxx(_dx) {
+	                var latlng = new google.maps.LatLng(_dx[0].geometry.location.lat(), _dx[0].geometry.location.lng());
+	                _dynamicMarkers.push({
+	                    address: _value.address,
+	                    busname: _value.busname,
+	                    position: latlng
+	                });
 	            };
 	            return _xxx;
 	        };
 
-	        var _failure = function (_value) {
-	            var _xxx =
-	            function (_message) {
-	                _dynamicMarkers.push(
-	                    {
-	                        address: _value.address,
-	                        busname: _value.busname,
-	                        position: null,
-	                        message: _message
-	                    });
+	        var _failure = function _failure(_value) {
+	            var _xxx = function _xxx(_message) {
+	                _dynamicMarkers.push({
+	                    address: _value.address,
+	                    busname: _value.busname,
+	                    position: null,
+	                    message: _message
+	                });
 	            };
 	            return _xxx;
 	        };
-
-
 
 	        function _showMap() {
-	            createDialog(
-	                {
-	                    id: 'SpecialOffer',
-	                    css: {
-	                        top: '100px',
-	                        margin: '0 auto'
-	                    },
-	                    template: __webpack_require__(317),
-	                    footerTemplate: __webpack_require__(318),
-	                    backdrop: true,
-	                    cancel: { label: 'Exit', fn: function () { } },
-	                    controller: 'PreviewMapController'
+	            createDialog({
+	                id: 'SpecialOffer',
+	                css: {
+	                    top: '100px',
+	                    margin: '0 auto'
 	                },
-
-	                {
-	                    points: _dynamicMarkers
-	                }
-	            );
+	                template: __webpack_require__(317),
+	                footerTemplate: __webpack_require__(318),
+	                backdrop: true,
+	                cancel: { label: 'Exit', fn: function fn() {} },
+	                controller: 'PreviewMapController'
+	            }, {
+	                points: _dynamicMarkers
+	            });
 	        }
-
-
 
 	        function addresses2geo(_mapdata) {
 	            _dynamicMarkers = [];
-	            var _arr = _.map(_mapdata,
-	                function (_val) {
-	                    return GeoCoder
-	                                    .geocode({ address: _val.address })
-	                                    .then(_success(_val), _failure(_val));
-	                });
+	            var _arr = _.map(_mapdata, function (_val) {
+	                return GeoCoder.geocode({ address: _val.address }).then(_success(_val), _failure(_val));
+	            });
 
-	            $q.all(_arr).finally(function (_data) { _showMap(); });
+	            $q.all(_arr).finally(function (_data) {
+	                _showMap();
+	            });
 	        }
-
 
 	        function show_map(_mapdata) {
 	            addresses2geo(_mapdata);
 	        }
-
-
-
-
 	    }
 	    GoogleGeoService.$inject = ["$http", "$q", "GeoCoder", "createDialog", "FFD_CONST", "_"];
-
-	}
+	};
 
 /***/ },
 
@@ -47616,27 +47155,23 @@ webpackJsonp([1],{
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    app.service('OrderHistoryService', OrderHistoryService);
 
 	    /* @ngInject */
 
-	    function OrderHistoryService($http, $q, _, FFD_CONST )
-	    {
+	    function OrderHistoryService($http, $q, _, FFD_CONST) {
 	        var sizepage = 10;
 	        var page = 1;
 	        var cntpages = 0;
-	        var cntrecords = 0
+	        var cntrecords = 0;
 	        var _records = [];
-
 
 	        this.getPage = getPage;
 	        this.getOrderInfo = getOrderInfo;
 
-
-	        function getPage(_page, _sizepage,_username) {
+	        function getPage(_page, _sizepage, _username) {
 	            var def = $q.defer();
 
 	            var _data = { _page: _page, _sizepage: _sizepage, _username: _username ? _username : "" };
@@ -47647,10 +47182,7 @@ webpackJsonp([1],{
 	                data: _data
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 
 	                console.log(data);
 
@@ -47661,12 +47193,12 @@ webpackJsonp([1],{
 	                var _result = { page: page, cntpages: cntpages, records: _records, cntrecords: cntrecords };
 	                console.log(_result);
 	                def.resolve(_result);
-	            })
-	            .error(function (data, status, headers, config) { def.reject("Failed to get data"); });
+	            }).error(function (data, status, headers, config) {
+	                def.reject("Failed to get data");
+	            });
 
 	            return def.promise;
 	        }
-
 
 	        function getOrderInfo(_listid) {
 	            var def = $q.defer();
@@ -47677,24 +47209,18 @@ webpackJsonp([1],{
 	                data: { _listid: _listid }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 
 	                def.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { def.reject("Failed to get data"); });
+	            }).error(function (data, status, headers, config) {
+	                def.reject("Failed to get data");
+	            });
 
 	            return def.promise;
 	        }
-
-
 	    }
 	    OrderHistoryService.$inject = ["$http", "$q", "_", "FFD_CONST"];
-
-
-	}
+	};
 
 /***/ },
 
@@ -47703,10 +47229,7 @@ webpackJsonp([1],{
 
 	'use strict';
 
-
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    //   GetOnePageQueryHistory
 	    app.service('QueryHistoryService', QueryHistoryService);
@@ -47717,31 +47240,26 @@ webpackJsonp([1],{
 	        var sizepage = 10;
 	        var page = 1;
 	        var cntpages = 0;
-	        var cntrecords = 0
+	        var cntrecords = 0;
 	        var _records = [];
-
 
 	        this.getPage = getPage;
 	        this.getQueryInfo = getQueryInfo;
 	        this.getUserQuery = get_userquery;
 
-	        function getPage(_page, _sizepage, _username)
-	        {
+	        function getPage(_page, _sizepage, _username) {
 	            var def = $q.defer();
 
 	            var _data = { _page: _page, _sizepage: _sizepage, _username: _username ? _username : "" };
 
 	            var request = $http({
 	                method: "post",
-	//                url: FFD_CONST.API_BASE_URL + "GetOnePageQueryHistory",
+	                //                url: FFD_CONST.API_BASE_URL + "GetOnePageQueryHistory",
 	                url: FFD_CONST.API_BASE_URL + "GetOnePageQueryHistory_M",
 	                data: _data
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 
 	                console.log(data);
 
@@ -47752,12 +47270,12 @@ webpackJsonp([1],{
 	                var _result = { page: page, cntpages: cntpages, records: _records, cntrecords: cntrecords };
 	                console.log(_result);
 	                def.resolve(_result);
-	            })
-	            .error(function (data, status, headers, config) { def.reject("Failed to get data"); });
+	            }).error(function (data, status, headers, config) {
+	                def.reject("Failed to get data");
+	            });
 
 	            return def.promise;
 	        }
-
 
 	        function getQueryInfo(_listid) {
 	            var def = $q.defer();
@@ -47768,19 +47286,15 @@ webpackJsonp([1],{
 	                data: { _listid: _listid }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 
 	                def.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { def.reject("Failed to get data"); });
+	            }).error(function (data, status, headers, config) {
+	                def.reject("Failed to get data");
+	            });
 
 	            return def.promise;
 	        }
-
-
 
 	        function get_userquery(_id) {
 	            var deferrer = $q.defer();
@@ -47791,28 +47305,17 @@ webpackJsonp([1],{
 	                data: { _id: _id }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject('Error !!!') });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject('Error !!!');
+	            });
 
 	            return deferrer.promise;
-
 	        }
-
-
-
 	    }
 	    QueryHistoryService.$inject = ["$http", "$q", "_", "FFD_CONST"];
-
-
-
-
-
-	}
+	};
 
 /***/ },
 
@@ -47821,19 +47324,16 @@ webpackJsonp([1],{
 
 	'use strict';
 
-	module.exports=function(app)
-	{
-
+	module.exports = function (app) {
 
 	    app.directive('myUiGridResize', myUiGridResizeDirective);
-
 
 	    /* @ngInject */
 	    function myUiGridResizeDirective(gridUtil, uiGridConstants) {
 	        return {
 	            restrict: 'A',
 	            require: 'uiGrid',
-	            link: function ($scope, $elm, $attrs, uiGridCtrl) {
+	            link: function link($scope, $elm, $attrs, uiGridCtrl) {
 	                $scope.$watch($attrs.uiGrid + '.minRowsToShow', function (val) {
 	                    var grid = uiGridCtrl.grid;
 
@@ -47853,8 +47353,7 @@ webpackJsonp([1],{
 	                            if (maxNumberOfFilters < 1) {
 	                                maxNumberOfFilters = 1;
 	                            }
-	                        }
-	                        else if (col.hasOwnProperty('filters')) {
+	                        } else if (col.hasOwnProperty('filters')) {
 	                            if (maxNumberOfFilters < col.filters.length) {
 	                                maxNumberOfFilters = col.filters.length;
 	                            }
@@ -47862,7 +47361,7 @@ webpackJsonp([1],{
 	                    });
 	                    var filterHeight = maxNumberOfFilters * headerHeight;
 
-	                    var newHeight = headerHeight + contentHeight + footerHeight + scrollbarHeight + filterHeight+10;
+	                    var newHeight = headerHeight + contentHeight + footerHeight + scrollbarHeight + filterHeight + 10;
 
 	                    $elm.css('height', newHeight + 'px');
 
@@ -47875,12 +47374,7 @@ webpackJsonp([1],{
 	        };
 	    }
 	    myUiGridResizeDirective.$inject = ["gridUtil", "uiGridConstants"];
-
-
-	}
-
-
-
+	};
 
 /***/ },
 
@@ -47889,15 +47383,13 @@ webpackJsonp([1],{
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 	    app.controller('ChangePreviewDataController', _ChangePreviewDataController);
 
 	    /* @ngInject */
-	    function _ChangePreviewDataController($scope,ChoicesFactory)
-	    {
+	    function _ChangePreviewDataController($scope, ChoicesFactory) {
 	        //        $scope.previewParams = previewParams;
-	        $scope.choices=ChoicesFactory.choices;
+	        $scope.choices = ChoicesFactory.choices;
 	        $scope.max_val = $scope.choices._count_Data;
 
 	        /*
@@ -47908,16 +47400,11 @@ webpackJsonp([1],{
 	                {
 	                    $scope.choices._count_Data = $scope.max_val;
 	                }
-
-	            });
+	              });
 	         */
-
 	    }
 	    _ChangePreviewDataController.$inject = ["$scope", "ChoicesFactory"];
-
-
-
-	}
+	};
 
 /***/ },
 
@@ -47930,15 +47417,11 @@ webpackJsonp([1],{
 	    app.controller('AskAboutPopupController', _AskAboutPopupController);
 
 	    /* @ngInject */
-	    function _AskAboutPopupController($scope, $localStorage)
-	    {
+	    function _AskAboutPopupController($scope, $localStorage) {
 	        $scope.chkAsk = false;
 	    }
 	    _AskAboutPopupController.$inject = ["$scope", "$localStorage"];
-
-
-
-	}
+	};
 
 /***/ },
 
@@ -47947,23 +47430,18 @@ webpackJsonp([1],{
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 	    app.controller('ChangeSubscriptionCountController', _ChangeSubscriptionCountController);
 
 	    /* @ngInject */
-	    function _ChangeSubscriptionCountController($scope, $http, toaster, FFD_CONST, AdminDataService , userid_ , leftCount_  )
-	    {
-	//        console.log("$scope.userid_=", userid_, "$scope.leftcount_=", leftCount_);
-
+	    function _ChangeSubscriptionCountController($scope, $http, toaster, FFD_CONST, AdminDataService, userid_, leftCount_) {
+	        //        console.log("$scope.userid_=", userid_, "$scope.leftcount_=", leftCount_);
 
 
 	        //        $scope.previewParams = previewParams;
-	        $scope.count = (leftCount_) ? leftCount_ : 5000;
+	        $scope.count = leftCount_ ? leftCount_ : 5000;
 
-
-	        $scope.change = function (_userid)
-	        {
+	        $scope.change = function (_userid) {
 
 	            var _url = FFD_CONST.API_BASE_URL + "UpdateSubscribeCount";
 
@@ -47973,26 +47451,15 @@ webpackJsonp([1],{
 	                data: { _userid: _userid, _count: $scope.count }
 	            });
 
-
-	            request
-	            .success(function (data, status, headers, config)
-	            {
+	            request.success(function (data, status, headers, config) {
 	                var _data = data.d;
 	                if (_data.result == 'OK') toaster.pop('success', _data.message);
 	                if (_data.result != 'OK') toaster.pop('error', _data.message);
-	            })
-	            .error(function (data, status, headers, config)
-	            {
-	            });
-
-
+	            }).error(function (data, status, headers, config) {});
 	        };
 	    }
 	    _ChangeSubscriptionCountController.$inject = ["$scope", "$http", "toaster", "FFD_CONST", "AdminDataService", "userid_", "leftCount_"];
-
-
-
-	}
+	};
 
 /***/ },
 
@@ -48001,38 +47468,30 @@ webpackJsonp([1],{
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 	    app.controller('ChangeSearchTemplateMailSettingController', _ChangeSearchTemplateMailSettingController);
 
 	    /* @ngInject */
-	    function _ChangeSearchTemplateMailSettingController($scope, $http, toaster, FFD_CONST,  GetResultsFactory , _template_params)
-	    {
-	//        console.log("$scope.userid_=", userid_, "$scope.leftcount_=", leftCount_);
-
+	    function _ChangeSearchTemplateMailSettingController($scope, $http, toaster, FFD_CONST, GetResultsFactory, _template_params) {
+	        //        console.log("$scope.userid_=", userid_, "$scope.leftcount_=", leftCount_);
 
 
 	        //        $scope.previewParams = previewParams;
 	        $scope.params = _template_params;
 	        $scope.max_val = 5000;
 
+	        $scope.change = function () {
 
-	        $scope.change = function ()
-	        {
-
-	//            GetResultsFactory.updatesearchtemplate_mailsettings(params.id, params.load, params.random, params.limit)
+	            //            GetResultsFactory.updatesearchtemplate_mailsettings(params.id, params.load, params.random, params.limit)
 
 	            /*
 	            var _url = FFD_CONST.API_BASE_URL + "UpdateSubscribeCount";
-
-	            var request = $http({
+	              var request = $http({
 	                method: "post",
 	                url: _url,
 	                data: { _userid: _userid, _count: $scope.count }
 	            });
-
-
-	            request
+	                request
 	            .success(function (data, status, headers, config)
 	            {
 	                var _data = data.d;
@@ -48047,10 +47506,7 @@ webpackJsonp([1],{
 	        };
 	    }
 	    _ChangeSearchTemplateMailSettingController.$inject = ["$scope", "$http", "toaster", "FFD_CONST", "GetResultsFactory", "_template_params"];
-
-
-
-	}
+	};
 
 /***/ },
 
@@ -48059,19 +47515,15 @@ webpackJsonp([1],{
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    app.service('ToolsService', _toolsservice);
 
-
 	    /* @ngInject */
-	    function _toolsservice(createDialog, $state, $timeout, $localStorage,toaster, GetResultsFactory) {
+	    function _toolsservice(createDialog, $state, $timeout, $localStorage, toaster, GetResultsFactory) {
 
 	        var _proposal_opened = false;
 	        var _count_max = 100;
-
-
 
 	        this.DownloadSample = _downloadsample;
 	        this.ActivateDialog = _activate_dialog;
@@ -48079,9 +47531,6 @@ webpackJsonp([1],{
 	        this.ChangePreviewData = _change_preview_data;
 	        this.ChangeSearchTemplateMailSettings = _change_search_template_mail_settings;
 	        this.AskAboutPopup = _askAboutPopup;
-
-
-
 
 	        function _downloadsample() {
 
@@ -48095,191 +47544,135 @@ webpackJsonp([1],{
 	            });
 
 	            anchor.appendTo('body');
-
 	        }
-
 
 	        function _activate_dialog(_cancel_label) {
 	            if (_proposal_opened) return;
 	            _proposal_opened = true;;
-	            createDialog
-	                 (
-	                     {
-	                         id: 'SpecialOffer',
-	                         css: { top: '100px', margin: '0 auto' },
-	                         template: __webpack_require__(328),
-	                         footerTemplate: __webpack_require__(329),
-	                         backdrop: true,
-	                         success:
-	                             {
-	                                 label: 'Yes, activate my account',
-	                                 fn: function () {
-	                                     _proposal_opened = false;
-	                                     $state.go('selectsubscriptiontype');
-	                                 }
-	                             },
-	                         cancel:
-	                             {
-	                                 label: _cancel_label,
-	                                 fn: function () { _proposal_opened = false; }
-	                             }
-	                     }
-	                 );
+	            createDialog({
+	                id: 'SpecialOffer',
+	                css: { top: '100px', margin: '0 auto' },
+	                template: __webpack_require__(328),
+	                footerTemplate: __webpack_require__(329),
+	                backdrop: true,
+	                success: {
+	                    label: 'Yes, activate my account',
+	                    fn: function fn() {
+	                        _proposal_opened = false;
+	                        $state.go('selectsubscriptiontype');
+	                    }
+	                },
+	                cancel: {
+	                    label: _cancel_label,
+	                    fn: function fn() {
+	                        _proposal_opened = false;
+	                    }
+	                }
+	            });
 	        }
-
 
 	        function _askAboutPopup() {
 	            if ($localStorage._askAboutPopup) return;
-	            createDialog
-	                 (
-	                     {
-	                         id: 'SpecialOffer',
-	                         css: { top: '100px', margin: '0 auto' },
-	                         template: __webpack_require__(330),
-	                         footerTemplate: __webpack_require__(331),
-	                         backdrop: true,
-	                         controller: 'AskAboutPopupController',
-	                         success:
-	                             {
-	                                 label: 'Close',
-	                                 fn: function () {
-	                                     if (this.chkAsk) $localStorage._askAboutPopup = this.chkAsk;
-	                                 }
-	                             },
-	                         cancel:
-	                             {
-	                                 label: "Cancel",
-	                                 fn: function () { }
-	                             }
-	                     }
-	                 );
-
-
-
-
+	            createDialog({
+	                id: 'SpecialOffer',
+	                css: { top: '100px', margin: '0 auto' },
+	                template: __webpack_require__(330),
+	                footerTemplate: __webpack_require__(331),
+	                backdrop: true,
+	                controller: 'AskAboutPopupController',
+	                success: {
+	                    label: 'Close',
+	                    fn: function fn() {
+	                        if (this.chkAsk) $localStorage._askAboutPopup = this.chkAsk;
+	                    }
+	                },
+	                cancel: {
+	                    label: "Cancel",
+	                    fn: function fn() {}
+	                }
+	            });
 	        }
-
-
 
 	        function _moreleads_dialog(_cancel_label) {
-	            createDialog
-	                 (
-	                     {
-	                         id: 'SpecialOffer',
-	                         css: { top: '100px', margin: '0 auto' },
-	                         template: __webpack_require__(332),
-	                         footerTemplate: __webpack_require__(333),
-	                         backdrop: true,
-	                         cancel: { label: 'CLOSE' }
-	                     }
-	                 );
+	            createDialog({
+	                id: 'SpecialOffer',
+	                css: { top: '100px', margin: '0 auto' },
+	                template: __webpack_require__(332),
+	                footerTemplate: __webpack_require__(333),
+	                backdrop: true,
+	                cancel: { label: 'CLOSE' }
+	            });
 	        }
 
-
-
-
-
-
-
-
 	        function _change_preview_data(_view_list_title, f_suc, f_can) {
-	            createDialog
-	                 (
-	                     {
-	                         id: 'SpecialOffer',
-	                         css: { top: '100px', margin: '0 auto' },
-	                         template: __webpack_require__(334),
-	                         footerTemplate: __webpack_require__(335),
-	                         backdrop: true,
-	                         controller: 'ChangePreviewDataController',
-	                         success:
-	                             {
-	                                 label: _view_list_title, // 'Preview List',
-	                                 fn: f_suc || function () {
-	                                     if (this.choices._count_Data == undefined) {
-	                                         this.choices._count_Data = this.max_val;
-	                                         return false;
-	                                     }
-	                                     $state.go('previewdata');
-	                                 }
-	                                 //                                 fn: f_suc
-	                             },
-	                         cancel:
-	                             {
-	                                 label: 'Cancel',
-	                                 fn: f_can || function () { }
-	                                 //                                 fn: f_can
-	                             }
-	                     }
-	                 );
+	            createDialog({
+	                id: 'SpecialOffer',
+	                css: { top: '100px', margin: '0 auto' },
+	                template: __webpack_require__(334),
+	                footerTemplate: __webpack_require__(335),
+	                backdrop: true,
+	                controller: 'ChangePreviewDataController',
+	                success: {
+	                    label: _view_list_title, // 'Preview List',
+	                    fn: f_suc || function () {
+	                        if (this.choices._count_Data == undefined) {
+	                            this.choices._count_Data = this.max_val;
+	                            return false;
+	                        }
+	                        $state.go('previewdata');
+	                    }
+	                    //                                 fn: f_suc
+	                },
+	                cancel: {
+	                    label: 'Cancel',
+	                    fn: f_can || function () {}
+	                    //                                 fn: f_can
+	                }
+	            });
 
 	            //            return _count_max;
 	        }
 
-
-
-
-
 	        function _change_search_template_mail_settings(_params, f_suc, f_can) {
-	            createDialog
-	                 (
-	                     {
-	                         id: 'SpecialOffer',
-	                         css: { top: '100px', margin: '0 auto' },
-	                         template: __webpack_require__(336),
-	                         footerTemplate: __webpack_require__(335),
-	                         backdrop: true,
-	                         controller: 'ChangeSearchTemplateMailSettingController',
-	                         success:
-	                             {
-	                                 label: 'Ok',
-	                                 fn: function ()
-	                                 {
-	                                     var _ffn = f_suc || function () { };
-	                                     var _params = this.params;
-	                                     GetResultsFactory
-	                                         .updatesearchtemplate_mailsettings(_params.id, _params.load, _params.random, _params.limit)
-	                                     	 .then(
-		                                            function (data) {
-		                                                                if (data.result == "OK") { _ffn(); }
-		                                                                if (data.result != "OK" && data.message) { toaster.pop('error', data.message); }
-		                                                            }
-		                                        );
-
-	                                 }
-	                             },
-	                         cancel:
-	                             {
-	                                 label: 'Cancel',
-	                                 fn: f_can || function () { }
-	                             }
-	                     },
-	                     {
-	                         _template_params: _params
-	                     }
-	                 );
-
+	            createDialog({
+	                id: 'SpecialOffer',
+	                css: { top: '100px', margin: '0 auto' },
+	                template: __webpack_require__(336),
+	                footerTemplate: __webpack_require__(335),
+	                backdrop: true,
+	                controller: 'ChangeSearchTemplateMailSettingController',
+	                success: {
+	                    label: 'Ok',
+	                    fn: function fn() {
+	                        var _ffn = f_suc || function () {};
+	                        var _params = this.params;
+	                        GetResultsFactory.updatesearchtemplate_mailsettings(_params.id, _params.load, _params.random, _params.limit).then(function (data) {
+	                            if (data.result == "OK") {
+	                                _ffn();
+	                            }
+	                            if (data.result != "OK" && data.message) {
+	                                toaster.pop('error', data.message);
+	                            }
+	                        });
+	                    }
+	                },
+	                cancel: {
+	                    label: 'Cancel',
+	                    fn: f_can || function () {}
+	                }
+	            }, {
+	                _template_params: _params
+	            });
 	        }
-
-
-
-
-
-
 	    }
 	    _toolsservice.$inject = ["createDialog", "$state", "$timeout", "$localStorage", "toaster", "GetResultsFactory"];
-
 
 	    app.filter('currencyFilter', function () {
 	        return function (value) {
 	            return value.toFixed(2).replace(/\d(?=(\d{3})+\.)/g, '$&,');
-	        }
+	        };
 	    });
-
-
-	}
-
-
+	};
 
 /***/ },
 
@@ -48367,29 +47760,20 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	//var  angular=require('angular');
 
 
 	//window.angular=require('angular');
 	//require('script?jquery');
+
 	__webpack_require__(1);
 
 	/* @ngInject */
 
-
 	// Init App
-	var _deps = [
-
-	        'ngMessages',
-	        'ui.router',
-	        'ngSanitize',
-	        'angular-capitalize-filter',
-	            'ngAnimate',
-	            'angularScreenfull',
-	          'angular-loading-bar',
+	var _deps = ['ngMessages', 'ui.router', 'ngSanitize', 'angular-capitalize-filter', 'ngAnimate', 'angularScreenfull', 'angular-loading-bar',
 	//          'ui.bootstrap',
-	          'ui.select',
+	'ui.select',
 
 	//        'ui.grid',
 	//        'ui.grid.resizeColumns',
@@ -48399,25 +47783,9 @@ webpackJsonp([0],[
 	//        'ui.grid.saveState',
 	//        'ui.grid.pagination',
 
-	        'ui.grid',
-	        'ui.grid.resizeColumns',
-	        'ui.grid.pinning',
-	        'ui.grid.selection',
-	        'ui.grid.moveColumns',
-	        'ui.grid.saveState',
-	        'ui.grid.pagination',
-	        'ui.grid.autoResize',
-	        'ui.grid.exporter',
-
-
-	        'fundoo.services',
-	        'ngMap',
-	        'ui.checkbox',
-	        'ui.date',
+	'ui.grid', 'ui.grid.resizeColumns', 'ui.grid.pinning', 'ui.grid.selection', 'ui.grid.moveColumns', 'ui.grid.saveState', 'ui.grid.pagination', 'ui.grid.autoResize', 'ui.grid.exporter', 'fundoo.services', 'ngMap', 'ui.checkbox', 'ui.date',
 	//        'ui.bootstrap.datetimepicker',
-	        'datePicker',
-	        'ui.dateTimeInput',
-
+	'datePicker', 'ui.dateTimeInput',
 
 	//        'ngBootstrap',
 	//            'daterangepicker',
@@ -48425,65 +47793,49 @@ webpackJsonp([0],[
 
 	//        'moment',
 	//        'ui.mask',
-	        'toaster',
-
-	        'ngStorage',
+	'toaster', 'ngStorage',
 	//        'LocalStorageModule',
-	        'formly',
-	        'formlyBootstrap'
+	'formly', 'formlyBootstrap'
 	//        , 'ng-if-bootstrap-grid'
 
 
-	        , 'ngBreakpoint'
-	        , 'frapontillo.bootstrap-switch'
-	        , 'ngMeta'
+	, 'ngBreakpoint', 'frapontillo.bootstrap-switch', 'ngMeta'
 
 	//        , 'eha.back-button.directive'
 	//        , 'eha.back-button.templates'
-
 
 
 	//        'app_tools'
 
 	//        , 'ui.bootstrap.popover'
 
-	        , 'ffd-routes'
+	, 'ffd-routes'];
 
-	];
+	function _AppController($scope, $timeout, $rootScope, $location) {
 
-
-	function _AppController($scope, $timeout, $rootScope, $location)
-	{
-
-	    
 	    $scope.LoadingActive = true;
 
 	    $scope.$on('cfpLoadingBar:started', function (event, data) {
-	        $timeout(function () { $scope.LoadingActive = true; });
+	        $timeout(function () {
+	            $scope.LoadingActive = true;
+	        });
 	        console.log('cfpLoadingBar:started');
 	    });
 
 	    $scope.$on('cfpLoadingBar:completed', function (event, data) {
-	        $timeout(function () { $scope.LoadingActive = false; });
+	        $timeout(function () {
+	            $scope.LoadingActive = false;
+	        });
 	        console.log('cfpLoadingBar:completed');
 	    });
 
 	    /*
 	    $scope.title = 'AppController';
-
-	    activate();
-
-	    function activate() { }
+	      activate();
+	      function activate() { }
 	     */
-
-
-
-
 	}
 	_AppController.$inject = ["$scope", "$timeout", "$rootScope", "$location"];
-
-
-
 
 	//require('script!jquery');
 	var app = angular.module('FreshFindData', _deps);
@@ -48497,10 +47849,8 @@ webpackJsonp([0],[
 	// require('./Run/')(app);
 
 	app.config(['cfpLoadingBarProvider', function (cfpLoadingBarProvider) {
-	//    cfpLoadingBarProvider.latencyThreshold = 10;
+	    //    cfpLoadingBarProvider.latencyThreshold = 10;
 	}]);
-
-
 
 	/*
 	*/
@@ -48515,244 +47865,164 @@ webpackJsonp([0],[
 	])
 
 
-
-
-
-
-	var _run = ["$templateCache", function (  /* @ngInject */  $templateCache)
-	{
-	    $templateCache.put('ui-grid/pagination-z',
-	      "<div role=\"contentinfo\" class=\"ui-grid-pager-panel\" ui-grid-pager ng-show=\"grid.options.enablePaginationControls\"><div role=\"navigation\" class=\"ui-grid-pager-container\"><div role=\"menubar\" class=\"ui-grid-pager-control\"><button type=\"button\" role=\"menuitem\" class=\"btn btn-success ui-grid-pager-first\" ui-grid-one-bind-title=\"aria.pageToFirst\" ui-grid-one-bind-aria-label=\"aria.pageToFirst\" ng-click=\"pageFirstPageClick()\" ng-disabled=\"cantPageBackward()\"><div class=\"first-triangle\"><div class=\"first-bar\"></div></div></button> <button type=\"button\" role=\"menuitem\" class=\"ui-grid-pager-previous\" ui-grid-one-bind-title=\"aria.pageBack\" ui-grid-one-bind-aria-label=\"aria.pageBack\" ng-click=\"pagePreviousPageClick()\" ng-disabled=\"cantPageBackward()\"><div class=\"first-triangle prev-triangle\"></div></button> <input type=\"number\" ui-grid-one-bind-title=\"aria.pageSelected\" ui-grid-one-bind-aria-label=\"aria.pageSelected\" class=\"ui-grid-pager-control-input\" ng-model=\"grid.options.paginationCurrentPage\" min=\"1\" max=\"{{ paginationApi.getTotalPages() }}\" required> <span class=\"ui-grid-pager-max-pages-number\" ng-show=\"paginationApi.getTotalPages() > 0\"><abbr ui-grid-one-bind-title=\"paginationOf\">/</abbr> {{ paginationApi.getTotalPages() }}</span> <button type=\"button\" role=\"menuitem\" class=\"ui-grid-pager-next\" ui-grid-one-bind-title=\"aria.pageForward\" ui-grid-one-bind-aria-label=\"aria.pageForward\" ng-click=\"pageNextPageClick()\" ng-disabled=\"cantPageForward()\"><div class=\"last-triangle next-triangle\"></div></button> <button type=\"button\" role=\"menuitem\" class=\"ui-grid-pager-last\" ui-grid-one-bind-title=\"aria.pageToLast\" ui-grid-one-bind-aria-label=\"aria.pageToLast\" ng-click=\"pageLastPageClick()\" ng-disabled=\"cantPageToLast()\"><div class=\"last-triangle\"><div class=\"last-bar\"></div></div></button></div><div class=\"ui-grid-pager-row-count-picker\" ng-if=\"grid.options.paginationPageSizes.length > 1\"><select ui-grid-one-bind-aria-labelledby-grid=\"'items-per-page-label'\" ng-model=\"grid.options.paginationPageSize\" ng-options=\"o as o for o in grid.options.paginationPageSizes\"></select><span ui-grid-one-bind-id-grid=\"'items-per-page-label'\" class=\"ui-grid-pager-row-count-label\">&nbsp;{{sizesLabel}}</span></div><span ng-if=\"grid.options.paginationPageSizes.length <= 1\" class=\"ui-grid-pager-row-count-label\">{{grid.options.paginationPageSize}}&nbsp;{{sizesLabel}}</span></div><div class=\"ui-grid-pager-count-container\"><div class=\"ui-grid-pager-count\"><span ng-show=\"grid.options.totalItems > 0\">{{showingLow}} <abbr ui-grid-one-bind-title=\"paginationThrough\">-</abbr> {{showingHigh}} {{paginationOf}} {{grid.options.totalItems}} {{totalItemsLabel}}</span></div></div></div>"
-	    );
-	}]
-
-
+	var _run = ["$templateCache", function _run( /* @ngInject */$templateCache) {
+	    $templateCache.put('ui-grid/pagination-z', "<div role=\"contentinfo\" class=\"ui-grid-pager-panel\" ui-grid-pager ng-show=\"grid.options.enablePaginationControls\"><div role=\"navigation\" class=\"ui-grid-pager-container\"><div role=\"menubar\" class=\"ui-grid-pager-control\"><button type=\"button\" role=\"menuitem\" class=\"btn btn-success ui-grid-pager-first\" ui-grid-one-bind-title=\"aria.pageToFirst\" ui-grid-one-bind-aria-label=\"aria.pageToFirst\" ng-click=\"pageFirstPageClick()\" ng-disabled=\"cantPageBackward()\"><div class=\"first-triangle\"><div class=\"first-bar\"></div></div></button> <button type=\"button\" role=\"menuitem\" class=\"ui-grid-pager-previous\" ui-grid-one-bind-title=\"aria.pageBack\" ui-grid-one-bind-aria-label=\"aria.pageBack\" ng-click=\"pagePreviousPageClick()\" ng-disabled=\"cantPageBackward()\"><div class=\"first-triangle prev-triangle\"></div></button> <input type=\"number\" ui-grid-one-bind-title=\"aria.pageSelected\" ui-grid-one-bind-aria-label=\"aria.pageSelected\" class=\"ui-grid-pager-control-input\" ng-model=\"grid.options.paginationCurrentPage\" min=\"1\" max=\"{{ paginationApi.getTotalPages() }}\" required> <span class=\"ui-grid-pager-max-pages-number\" ng-show=\"paginationApi.getTotalPages() > 0\"><abbr ui-grid-one-bind-title=\"paginationOf\">/</abbr> {{ paginationApi.getTotalPages() }}</span> <button type=\"button\" role=\"menuitem\" class=\"ui-grid-pager-next\" ui-grid-one-bind-title=\"aria.pageForward\" ui-grid-one-bind-aria-label=\"aria.pageForward\" ng-click=\"pageNextPageClick()\" ng-disabled=\"cantPageForward()\"><div class=\"last-triangle next-triangle\"></div></button> <button type=\"button\" role=\"menuitem\" class=\"ui-grid-pager-last\" ui-grid-one-bind-title=\"aria.pageToLast\" ui-grid-one-bind-aria-label=\"aria.pageToLast\" ng-click=\"pageLastPageClick()\" ng-disabled=\"cantPageToLast()\"><div class=\"last-triangle\"><div class=\"last-bar\"></div></div></button></div><div class=\"ui-grid-pager-row-count-picker\" ng-if=\"grid.options.paginationPageSizes.length > 1\"><select ui-grid-one-bind-aria-labelledby-grid=\"'items-per-page-label'\" ng-model=\"grid.options.paginationPageSize\" ng-options=\"o as o for o in grid.options.paginationPageSizes\"></select><span ui-grid-one-bind-id-grid=\"'items-per-page-label'\" class=\"ui-grid-pager-row-count-label\">&nbsp;{{sizesLabel}}</span></div><span ng-if=\"grid.options.paginationPageSizes.length <= 1\" class=\"ui-grid-pager-row-count-label\">{{grid.options.paginationPageSize}}&nbsp;{{sizesLabel}}</span></div><div class=\"ui-grid-pager-count-container\"><div class=\"ui-grid-pager-count\"><span ng-show=\"grid.options.totalItems > 0\">{{showingLow}} <abbr ui-grid-one-bind-title=\"paginationThrough\">-</abbr> {{showingHigh}} {{paginationOf}} {{grid.options.totalItems}} {{totalItemsLabel}}</span></div></div></div>");
+	}];
 
 	app.run(_run);
-
-
 
 	// app.run(  /* @ngInject */   function ($state, $location) { $state.transitionTo('home'); });
 
 
-
-	app.run(['$state', '$location', '$sessionStorage', '$rootScope', '$uiViewScroll',
-	    function ($state, $location, $sessionStorage, $rootScope, $uiViewScroll)
-	    {
+	app.run(['$state', '$location', '$sessionStorage', '$rootScope', '$uiViewScroll', function ($state, $location, $sessionStorage, $rootScope, $uiViewScroll) {
 
 	    delete $sessionStorage['searchform'];
 
-	    $rootScope.$on('$stateChangeSuccess',
-	        function (event, toState, toParams, fromState, fromParams)
-	        {
+	    $rootScope.$on('$stateChangeSuccess', function (event, toState, toParams, fromState, fromParams) {
 
-	            if (window['addthis_share'] && toState.meta)
-	            {
-	                window['addthis_share'].title = toState.meta['title'];
-	                window['addthis_share'].description = toState.meta['description'];
-	                setTimeout(function () { window['addthis_share'].url = window.location.href; }, 700);
-	            }
-
-
-	            if (toParams['scrollto']) return;
-	            window.scroll(0, 0);
+	        if (window['addthis_share'] && toState.meta) {
+	            window['addthis_share'].title = toState.meta['title'];
+	            window['addthis_share'].description = toState.meta['description'];
+	            setTimeout(function () {
+	                window['addthis_share'].url = window.location.href;
+	            }, 700);
 	        }
-	        );
 
+	        if (toParams['scrollto']) return;
+	        window.scroll(0, 0);
+	    });
 
-	    var _states = [
-	              'successcreatepaypalsubscription'
-	            , 'selectsubscriptiontype', 'confirmregister'
-	            , "about", "try-it", "pricing"
-	            , "contact", "how-it-works", "your-data-pro"
-	            , "create-bitpay-subscription"
-	            , "create-bitcoin-monthly-fee"
-	            , "commit-bitcoin-user-payment"
-	            , "register"
-	            , "login"
-	            , "getsubscriptionfullinfo"
-	            , "newsletter"
-	            , "profile"
-	            , "profile.changecreditcarddata"
-	    ];
+	    var _states = ['successcreatepaypalsubscription', 'selectsubscriptiontype', 'confirmregister', "about", "try-it", "pricing", "contact", "how-it-works", "your-data-pro", "create-bitpay-subscription", "create-bitcoin-monthly-fee", "commit-bitcoin-user-payment", "register", "login", "getsubscriptionfullinfo", "newsletter", "profile", "profile.changecreditcarddata"];
 
-
-	    for (var _in in _states)
-	    {
+	    for (var _in in _states) {
 	        var _state = _states[_in];
-	        if ($location.$$path == '/' + _state.replace('.','/'))
-	        {
+	        if ($location.$$path == '/' + _state.replace('.', '/')) {
 	            var _state0 = _state.split('-').join('');
 	            $state.transitionTo(_state0, $location.$$search);
 	            return;
 	        }
 	    }
 
-
-	        /*
+	    /*
 	    if ($location.$$path == '/successcreatepaypalsubscription') {
-	        $state.transitionTo('successcreatepaypalsubscription', $location.$$search);
-	        return;
+	    $state.transitionTo('successcreatepaypalsubscription', $location.$$search);
+	    return;
 	    }
-
 	    if ($location.$$path == '/selectsubscriptiontype') {
-	        $state.transitionTo('selectsubscriptiontype', $location.$$search);
-	        return;
+	    $state.transitionTo('selectsubscriptiontype', $location.$$search);
+	    return;
 	    }
-
-	   
-
+	    
 	    if ($location.$$path == '/confirmregister'){
-	        $state.transitionTo('confirmregister', $location.$$search);
-	        return;
+	    $state.transitionTo('confirmregister', $location.$$search);
+	    return;
 	    }
-	         */
-
-
+	     */
 
 	    $state.transitionTo('home');
-	}
+	}]);
 
-	]);
+	app.run( /* @ngInject */_check_security);
 
+	function _check_security($rootScope, $localStorage, LoginService) {
+	    $rootScope.$on('$stateChangeStart', function (event, toState, toParams, fromState, fromParams) {
+	        LoginService.getuserinfo().then(function (data) {
+	            if (toState.authenticate && !data.islogged) {
+	                event.preventDefault();
+	                /*
+	                if (fromState.name == 'successcreatepaypalsubscription')
+	                {
+	                    $localStorage['successcreatepaypalsubscription'] = fromParams;
+	                }
+	                */
 
-
-
-
-
-
-
-	app.run(  /* @ngInject */ _check_security);
-
-	function _check_security($rootScope, $localStorage , LoginService)
-	{
-	    $rootScope.$on('$stateChangeStart',
-	          function (event, toState, toParams, fromState, fromParams)
-	          {
-	              LoginService.getuserinfo()
-	                         .then(function (data) {
-	                             if (toState.authenticate && !data.islogged) {
-	                                 event.preventDefault();
-	                                 /*
-	                                 if (fromState.name == 'successcreatepaypalsubscription')
-	                                 {
-	                                     $localStorage['successcreatepaypalsubscription'] = fromParams;
-	                                 }
-	                                 */
-
-	                                 LoginService.enterloginform(toState.name,toParams, fromState.name, fromParams);
-	                             }
-	                         });
-	          }
-	        );
-
+	                LoginService.enterloginform(toState.name, toParams, fromState.name, fromParams);
+	            }
+	        });
+	    });
 	}
 	_check_security.$inject = ["$rootScope", "$localStorage", "LoginService"];
 
-
-
-
-	app.run( /* @ngInject */    ["$rootScope", "$location", "$state", function ($rootScope,  $location, $state )
-	{
+	app.run( /* @ngInject */["$rootScope", "$location", "$state", function ($rootScope, $location, $state) {
 	    //Bind the `$locationChangeSuccess` event on the rootScope, so that we dont need to 
 	    //bind in induvidual controllers.
 
 
-	    $rootScope.$on('$locationChangeStart', function (event,_newurl)
-	    {
-	        if ($rootScope.prevUrl==_newurl && window.$_Tawk && window.$_Tawk.isChatMaximized())
-	        {
+	    $rootScope.$on('$locationChangeStart', function (event, _newurl) {
+	        if ($rootScope.prevUrl == _newurl && window.$_Tawk && window.$_Tawk.isChatMaximized()) {
 	            event.preventDefault();
 	            window.$_Tawk.toggle();
 	        }
 	    });
 
-
-	    $rootScope.$on('$locationChangeSuccess', function (event, _newurl,_oldurl)
-	    {
+	    $rootScope.$on('$locationChangeSuccess', function (event, _newurl, _oldurl) {
 	        $rootScope.actualLocation = $location.path();
-	        $rootScope.prevUrl=_oldurl;
+	        $rootScope.prevUrl = _oldurl;
 	    });
 
-	    $rootScope.$watch(function () { return $location.path() },
-	        function (newLocation, oldLocation) {
+	    $rootScope.$watch(function () {
+	        return $location.path();
+	    }, function (newLocation, oldLocation) {
 	        if ($rootScope.actualLocation === newLocation) {
 	            //            alert('Why did you use history back? ' + newLocation + ' <-- ' + $rootScope.actualLocation);
-	//            console.log('Why did you use history back? ' + newLocation + ' <-- ' + $rootScope.actualLocation);
+	            //            console.log('Why did you use history back? ' + newLocation + ' <-- ' + $rootScope.actualLocation);
 
 	            var _newloc = newLocation.replace('/', '');
 	            if (_newloc == "") _newloc = "home";
 	            $state.go(_newloc);
-
-
 	        }
 	    });
 	}]);
-	 
-	 
-
-
 
 	app.config(['FFD_CONST', 'ngMetaProvider', _config]);
 
-	app.run(['FFD_CONST','ngMeta', '$state', _run_1]);
+	app.run(['FFD_CONST', 'ngMeta', '$state', _run_1]);
 
+	app.run( /* @ngInject */["$state", "$timeout", function ($state, $timeout) {
+	    $timeout(function (_) {
+	        $state.get("search").authenticate = true;
+	    }, 3000);
+	}]);
 
-
-	function _config(FFD_CONST, ngMetaProvider)
-	{
+	function _config(FFD_CONST, ngMetaProvider) {
 	    var _home = FFD_CONST.ROUTE_METAS['home'];
-	    var _tags = ['description', 'keywords' ,'og:title', 'og:type', 'og:url', 'og:image', 'og:title', 'og:description'];
+	    var _tags = ['description', 'keywords', 'og:title', 'og:type', 'og:url', 'og:image', 'og:title', 'og:description'];
 
 	    ngMetaProvider.setDefaultTitle(_home['title']);
-	    angular.forEach(_tags, function (_tag) { ngMetaProvider.setDefaultTag( _tag , _home[_tag]); });
-	    
+	    angular.forEach(_tags, function (_tag) {
+	        ngMetaProvider.setDefaultTag(_tag, _home[_tag]);
+	    });
 
 	    //    ngMetaProvider.setDefaultTitle('Transform the way you find business leads | FreshFind Data');
 
-	//    ngMetaProvider.setDefaultTag('description', 'Tap into new business leads as soon as the data is available');
-	//    ngMetaProvider.setDefaultTag('og:title', 'Transform the way you find business leads | FreshFind Data');
-	//    ngMetaProvider.setDefaultTag('og:type', 'website');
-	//    ngMetaProvider.setDefaultTag('og:url', 'https://www.freshfinddata.com/');
-	//    ngMetaProvider.setDefaultTag('og:image', 'https://www.freshfinddata.com/img/freshfind-og-img-home.jpg');
+	    //    ngMetaProvider.setDefaultTag('description', 'Tap into new business leads as soon as the data is available');
+	    //    ngMetaProvider.setDefaultTag('og:title', 'Transform the way you find business leads | FreshFind Data');
+	    //    ngMetaProvider.setDefaultTag('og:type', 'website');
+	    //    ngMetaProvider.setDefaultTag('og:url', 'https://www.freshfinddata.com/');
+	    //    ngMetaProvider.setDefaultTag('og:image', 'https://www.freshfinddata.com/img/freshfind-og-img-home.jpg');
 	    //    ngMetaProvider.setDefaultTag('og:description', 'Tap into new business leads as soon as the data is availables.');
-
-
 
 	}
 
-
-
-	function _run_1(FFD_CONST,ngMeta, $state) {
+	function _run_1(FFD_CONST, ngMeta, $state) {
 	    var _metas = FFD_CONST.ROUTE_METAS;
 	    ngMeta.init();
 
-	    angular.forEach(FFD_CONST.ROUTE_METAS,
-	        function (_val, _key)
-	        {
-	//            console.log(_key, _val);
-	            $state.get(_key).meta = _val;
-	        }
-	        );
+	    angular.forEach(FFD_CONST.ROUTE_METAS, function (_val, _key) {
+	        //            console.log(_key, _val);
+	        $state.get(_key).meta = _val;
+	    });
 
-	/*
-	    $state.get('about').meta = _metas['about'];
-	    $state.get('tryit').meta = _metas['tryit'];
-	    $state.get('pricing').meta = _metas['pricing'];
-	    $state.get('faq').meta = _metas['faq'];
-	 
-	 */
+	    /*
+	        $state.get('about').meta = _metas['about'];
+	        $state.get('tryit').meta = _metas['tryit'];
+	        $state.get('pricing').meta = _metas['pricing'];
+	        $state.get('faq').meta = _metas['faq'];
+	     
+	     */
 	}
 
-
-
-
-
-
-
-
 	module.exports = app;
-
 
 /***/ },
 /* 1 */
@@ -48780,8 +48050,7 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 	    __webpack_require__(17)(app);
 	    __webpack_require__(22)(app);
 	    __webpack_require__(28)(app);
@@ -48795,8 +48064,7 @@ webpackJsonp([0],[
 	    __webpack_require__(64)(app);
 	    __webpack_require__(69)(app);
 	    __webpack_require__(88)(app);
-	}
-
+	};
 
 /***/ },
 /* 17 */
@@ -48810,36 +48078,25 @@ webpackJsonp([0],[
 	    app.directive('getStartedNow', _GetStartedNow);
 
 	    function _GetStartedNow() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            scope: {},
 	            template: __webpack_require__(20),
-	            controller: ["FFD_CONST", "$scope", "$rootScope", "$state", "$timeout", "$filter", "toaster", "LoginService", _StartNowController]
-	            , controllerAs: 'vm'
+	            controller: ["FFD_CONST", "$scope", "$rootScope", "$state", "$timeout", "$filter", "toaster", "LoginService", _StartNowController],
+	            controllerAs: 'vm'
 	        };
 
 	        return _res;
 	    }
 
-
-
-	    function _StartNowController(FFD_CONST, $scope, $rootScope ,$state, $timeout, $filter ,toaster,LoginService) {
+	    function _StartNowController(FFD_CONST, $scope, $rootScope, $state, $timeout, $filter, toaster, LoginService) {
 
 	        var vm = this;
 
-	//        vm.breakpoint = $rootScope.breakpoint;
+	        //        vm.breakpoint = $rootScope.breakpoint;
 
-	        vm.businesSes =
-	              [
-	              { name: "How large is your business?", value: "" },
-	              { name: "MICRO BUSINESS", value: "MICRO BUSINESS" },
-	              { name: "HOME BASE BUSINESS", value: "HOME BASE BUSINESS" },
-	              { name: "SMALL BUSINESS", value: "SMALL BUSINESS" },
-	              { name: "LARGE BUSINESS", value: "LARGE BUSINESS" }
-	              ];
-
+	        vm.businesSes = [{ name: "How large is your business?", value: "" }, { name: "MICRO BUSINESS", value: "MICRO BUSINESS" }, { name: "HOME BASE BUSINESS", value: "HOME BASE BUSINESS" }, { name: "SMALL BUSINESS", value: "SMALL BUSINESS" }, { name: "LARGE BUSINESS", value: "LARGE BUSINESS" }];
 
 	        vm.adduser = function ($event) {
 
@@ -48848,255 +48105,212 @@ webpackJsonp([0],[
 	            //            localStorageService.set('_regdata', angular.toJson(vm.regdata));
 	            //            $sessionStorage["_regdata"] = vm.regdata;
 
-	            LoginService.createuser(vm.regdata)
-	            .then(function (data) {
+	            LoginService.createuser(vm.regdata).then(function (data) {
 	                if (data.result == 'ERROR') {
 	                    toaster.pop('error', data.message);
 	                }
 	                if (data.result == 'OK') {
 	                    $state.go('registersuccess');
 	                }
-
-
 	            });
 	        };
-
-
-
 
 	        //        vm.bustypes = InfoFactory.bustypes;
 	        //        vm.choices = ChoicesFactory.choices;
 
 
-	        vm.regdata =
-	            {
-	                FirstName: '',
-	                LastName: '',
-	                UserName: '',
-	                Email: '',
-	                Password: '',
-	                CompanyName: '',
-	                Title: null,
-	                Address: '',
-	                City: '',
-	                State: '',
-	                Zip: '',
-	                Country: '',
-	                PhoneNumber: '',
-	                HearOfUs: '',
-	                BusinessType: '',
-	                Message: null
-	            };
+	        vm.regdata = {
+	            FirstName: '',
+	            LastName: '',
+	            UserName: '',
+	            Email: '',
+	            Password: '',
+	            CompanyName: '',
+	            Title: null,
+	            Address: '',
+	            City: '',
+	            State: '',
+	            Zip: '',
+	            Country: '',
+	            PhoneNumber: '',
+	            HearOfUs: '',
+	            BusinessType: '',
+	            Message: null
+	        };
 
 	        vm.options = {};
 
-	        vm.regdataFields =
-	            [
+	        vm.regdataFields = [{
+	            key: 'FirstName',
+	            type: "bs4Input",
+	            templateOptions: {
+	                label: 'First Name',
+	                type: 'text',
+	                placeholder: 'First Name',
+	                required: true
+	                //                    ,minlength: 5
+	                , maxlength: 25
+	            },
 
-
-	            {
-	                key: 'FirstName',
-	                type: "bs4Input",
-	                templateOptions:
-	                    {
-	                    label:'First Name',
-	                    type: 'text',
-	                    placeholder: 'First Name'
-	                    ,required: true
-	//                    ,minlength: 5
-	                    ,maxlength: 25
+	            watcher: {
+	                listener: function listener(field, newValue, oldValue, scope, stopWatching) {
+	                    if (newValue) {
+	                        vm.regdata.FirstName = $filter('capitalize')(newValue || '');
+	                        console.log('Default Expression: ' + newValue);
 	                    }
+	                }
+	            }
+	        }, {
+	            key: 'LastName',
+	            type: "bs4Input",
+	            templateOptions: {
+	                label: 'Last Name',
+	                type: 'text',
+	                placeholder: 'Last Name',
+	                required: true
+	                //                    ,minlength: 5
+	                , maxlength: 25
 
+	            },
+	            watcher: {
+	                listener: function listener(field, newValue, oldValue, scope, stopWatching) {
+	                    if (newValue) {
+	                        vm.regdata.LastName = $filter('capitalize')(newValue || '');
+	                    }
+	                }
+	            }
 
-	                , watcher: {
-	                    listener: function (field, newValue, oldValue, scope, stopWatching) {
-	                        if (newValue) {
-	                            vm.regdata.FirstName = $filter('capitalize')((newValue || ''));
-	                            console.log('Default Expression: ' + newValue);
+	        }, {
+	            key: 'Email',
+	            type: "bs4Input",
+	            templateOptions: {
+	                label: 'E-mail',
+	                type: 'email',
+	                placeholder: 'E-mail',
+	                required: true
+	                //                    ,minlength: 10
+	                , maxlength: 80,
+	                disabled: true
+	            }
+	        }, {
+	            key: 'confirmEmail',
+	            type: 'bs4Input',
+	            optionsTypes: ['matchField'],
+	            model: vm.confirmationModel,
+	            templateOptions: {
+	                type: 'email',
+	                label: 'Confirm email address',
+	                placeholder: 'Please re-enter your e-mail',
+	                required: true,
+	                //                minlength: 6,
+	                maxlength: 80
+
+	            },
+	            data: {
+	                fieldToMatch: 'Email',
+	                modelToMatch: vm.model
+	            }
+
+	        }, {
+	            key: 'UserName',
+	            type: "bs4Input",
+	            templateOptions: {
+	                label: 'User Name',
+	                type: 'text',
+	                placeholder: 'User Name'
+	                //                    ,minlength: 5
+	                , maxlength: 25,
+	                required: true
+	            }
+	        }, {
+	            key: 'Password',
+	            type: "bs4Input",
+	            templateOptions: {
+	                label: 'Password',
+	                type: 'password',
+	                placeholder: 'Password',
+	                required: true,
+	                disabled: true,
+	                minlength: 6,
+	                maxlength: 20
+	            }
+	        }, {
+	            key: 'confirmPassword',
+	            type: 'bs4Input',
+	            optionsTypes: ['matchField'],
+	            model: vm.confirmationModel,
+	            templateOptions: {
+	                type: 'password',
+	                label: 'Confirm Password',
+	                placeholder: 'Please re-enter your password',
+	                required: true,
+	                minlength: 6,
+	                maxlength: 20
+
+	            },
+	            data: {
+	                fieldToMatch: 'Password',
+	                modelToMatch: vm.model
+	            }
+
+	        }, {
+	            key: 'Zip',
+	            type: "bs4Input",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Zip',
+	                placeholder: 'Enter Zip',
+	                required: true
+	            }
+	        }, {
+	            key: 'CompanyName',
+	            type: "bs4Input",
+	            //                    className: 'hidden-sm-down',
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Company Name',
+	                placeholder: 'Enter Company name',
+	                required: true
+	            },
+	            hideExpression: 'model.mobile'
+	        }
+
+	        /*
+	                    ,{
+	                        key: 'BusinessType',
+	                        type: 'bs4Select',
+	                        className: 'hidden-sm-down',
+	                        defaultValue: "",
+	                        templateOptions: {
+	                            label: 'How large is your business?',
+	                            placeholder: '',
+	                            labelProp: 'name',
+	                            valueProp: 'value',
+	                            options: vm.businesSes
 	                        }
 	                    }
-	                }
-	            }
+	        */
 
-	            , {
-	                key: 'LastName',
-	                type: "bs4Input",
-	                templateOptions:
-	                    {
-	                        label: 'Last Name',
-	                        type: 'text',
-	                    placeholder: 'Last Name'
-	                    ,required: true
-	//                    ,minlength: 5
-	                    ,maxlength: 25
+	        , {
+	            key: 'BusinessType',
+	            type: "bs4Input",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Business Type',
+	                placeholder: 'Enter Business type'
+	            },
+	            hideExpression: 'model.mobile'
+	        }];
 
-	                    }
-	                                , watcher: {
-	                                    listener: function (field, newValue, oldValue, scope, stopWatching) {
-	                                        if (newValue) {
-	                                            vm.regdata.LastName = $filter('capitalize')((newValue || ''));
-	                                        }
-	                                    }
-	                                }
-
-	            }
-
-
-	            , {
-	                key: 'Email',
-	                type: "bs4Input",
-	                templateOptions:
-	                    {
-	                        label:'E-mail',
-	                    type: 'email',
-	                    placeholder: 'E-mail'
-	                    ,required: true
-	//                    ,minlength: 10
-	                    ,maxlength: 80
-	                    ,disabled:true
-	                }
-	            }
-
-
-
-	           , {
-	               key: 'confirmEmail',
-	               type: 'bs4Input',
-	               optionsTypes: ['matchField'],
-	               model: vm.confirmationModel,
-	               templateOptions: {
-	                   type: 'email',
-	                   label: 'Confirm email address',
-	                   placeholder: 'Please re-enter your e-mail',
-	                   required: true,
-	                   //                minlength: 6,
-	                   maxlength: 80
-
-	               }
-	                           , data: {
-	                               fieldToMatch: 'Email',
-	                               modelToMatch: vm.model
-	                           }
-
-	           }
-
-
-	            , {
-	               key: 'UserName',
-	        type: "bs4Input",
-	        templateOptions:
-	        {
-	            label:'User Name',
-	            type: 'text',
-	            placeholder: 'User Name'
-	            //                    ,minlength: 5
-	            ,maxlength: 25
-	            ,required: true
-	        }
-	           }
-
-
-
-
-	            , {
-	                key: 'Password',
-	                type: "bs4Input",
-	                templateOptions: {
-	                    label: 'Password',
-	                    type: 'password',
-	                    placeholder: 'Password'
-	                    ,required: true
-	                    ,disabled:true
-	                    ,minlength: 6
-	                    ,maxlength: 20
-	                    }
-	                }
-
-
-
-	            , {
-	                key: 'confirmPassword',
-	                type: 'bs4Input',
-	                optionsTypes: ['matchField'],
-	                model: vm.confirmationModel,
-	                templateOptions: {
-	                    type: 'password',
-	                    label: 'Confirm Password',
-	                    placeholder: 'Please re-enter your password',
-	                    required: true,
-	                    minlength: 6,
-	                    maxlength: 20
-
-	                },
-	                data: {
-	                    fieldToMatch: 'Password',
-	                    modelToMatch: vm.model
-	                }
-
-	            }
-
-	            ,{
-	        key: 'Zip',
-	        type: "bs4Input",
-	        templateOptions: {
-	            type: 'text',
-	            label: 'Zip',
-	            placeholder: 'Enter Zip',
-	            required: true
-	        }
-	    },
-
-
-	                {
-	                    key: 'CompanyName',
-	                    type: "bs4Input",
-	//                    className: 'hidden-sm-down',
-	                    templateOptions: {
-	                        type: 'text',
-	                        label: 'Company Name',
-	                        placeholder: 'Enter Company name',
-	                        required: true
-	                    }
-	                  ,hideExpression: 'model.mobile'
-	            }
-
-
-	/*
-	            ,{
-	                key: 'BusinessType',
-	                type: 'bs4Select',
-	                className: 'hidden-sm-down',
-	                defaultValue: "",
-	                templateOptions: {
-	                    label: 'How large is your business?',
-	                    placeholder: '',
-	                    labelProp: 'name',
-	                    valueProp: 'value',
-	                    options: vm.businesSes
-	                }
-	            }
-	*/
-
-
-	            , {
-	                key: 'BusinessType',
-	                type: "bs4Input",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Business Type',
-	                    placeholder: 'Enter Business type'
-	                },
-	                hideExpression: 'model.mobile'
-	            }
-
-
-	            ];
-
-	        $timeout(function () { angular.element('input[disabled]').each(function () { angular.element(this).removeAttr('disabled'); });     }, 5000);
+	        $timeout(function () {
+	            angular.element('input[disabled]').each(function () {
+	                angular.element(this).removeAttr('disabled');
+	            });
+	        }, 5000);
 
 	        //        $scope.vm = vm;
 	    }
-	}
+	};
 
 /***/ },
 /* 18 */
@@ -49127,104 +48341,77 @@ webpackJsonp([0],[
 
 	module.exports = function (app) {
 
-	    app.directive('topHeader', _TopHeader);
-	    app.directive('topHeaderSearch', _TopHeaderSearch);
-	     
-	    function _TopHeader()
-	    {
-	        var _res =
-	        {
-	            restrict: 'E',
-	            replace: 'true',
-	            template: __webpack_require__(25),
-	            controller: ["$scope", "LoginService", _controller]
-	            ,controllerAs: 'vm'
-	        };
+	        app.directive('topHeader', _TopHeader);
+	        app.directive('topHeaderSearch', _TopHeaderSearch);
 
-	        return _res;
-	    }
+	        function _TopHeader() {
+	                var _res = {
+	                        restrict: 'E',
+	                        replace: 'true',
+	                        template: __webpack_require__(25),
+	                        controller: ["_", "$scope", "$state", "LoginService", _controller],
+	                        controllerAs: 'vm'
+	                };
 
-
-
-	    function _TopHeaderSearch() {
-	        var _res =
-	        {
-	            restrict: 'E',
-	            replace: 'true',
-	            template: __webpack_require__(27)
-	        };
-
-	        return _res;
-	    }
-
-
-	    /* @ngInject */
-	    function _controller($scope, LoginService)
-	    {
-	        //        var vm = this;
-
-	        var vm = this;
-
-	        vm.username = "";
-	        vm.isLogged = false;
-	        vm.changeCC = false;
-	        vm.createSubscr = false;
-
-	        vm.logservice = LoginService;
-
-	/*
-	        vm.isAdmin = false;
-	        vm.counters = { isLoaded: false, _leftcount: 0 };
-	        vm.needActivate = false;
-	 */
-
-
-
-
-
-	        $scope.links = [
-	            { title: 'HOME', link: 'home' },
-	            { title: 'ABOUT', link: 'about' },
-	            { title: 'LeadFormulator'  /* 'TRY IT'*/, link: LoginService.isLogged ? "tryit" : "home({ scrollto:'#start-now'})" },
-
-
-	            { title: 'PRICING', link: 'pricing' },
-	            { title: 'FAQ', link: 'faq' },
-	            { title: 'CONTACT', link: 'contact' },
-	            { title: 'HOW IT WORKS', link: 'howitworks' },
-	            { title: 'YOUR DATA PRO', link: 'yourdatapro' }
-	        ];
-
-
-	        
-	        LoginService.getuserinfo()
-	        .then(
-
-	        function (data) {
-	            console.log('logelem get userinfo');
-	            vm.username = data.username;
-	            vm.isLogged = data.islogged;
-	            vm.changeCC = data.changeCC;
-	            vm.createSubscr = data.createSubscr;
-
-	            vm.InvoiceID = data.InvoiceID;
+	                return _res;
 	        }
-	        );
-	        
-	        
 
+	        function _TopHeaderSearch() {
+	                var _res = {
+	                        restrict: 'E',
+	                        replace: 'true',
+	                        template: __webpack_require__(27)
+	                };
 
+	                return _res;
+	        }
 
+	        function _getLinks(_islogged, _curr) {
+	                var _arr = [{ title: 'HOME', link: 'home' }, { title: 'ABOUT', link: 'about' }, { title: 'LeadFormulator', link: _islogged ? "tryit" : "home({ scrollto:'#start-now'})", link_0: "tryit" }, { title: 'PRICING', link: 'pricing' }, { title: 'FAQ', link: 'faq' }, { title: 'CONTACT', link: 'contact' }, { title: 'HOW IT WORKS', link: 'howitworks' }, { title: 'YOUR DATA PRO', link: 'yourdatapro' }];
 
-	    }
-	    _controller.$inject = ["$scope", "LoginService"];
+	                //        let _arr0 = _arr.map(x=> Object.assign(x, { active: (x.link_0 ? x.link_0 : x.link).startsWith(_curr) }));
 
+	                var _arr0 = _.map(_arr, function (x) {
+	                        return _.merge({}, x, { active: _.startsWith(x.link_0 ? x.link_0 : x.link, _curr) });
+	                });
 
+	                return _arr0;
+	        }
 
+	        /* @ngInject */
+	        function _controller(_, $scope, $state, LoginService) {
 
+	                //        var vm = this;
 
+	                var vm = this;
 
-	}
+	                vm.username = "";
+	                vm.isLogged = false;
+	                vm.changeCC = false;
+	                vm.createSubscr = false;
+
+	                vm.logservice = LoginService;
+
+	                $scope.links = [];
+
+	                $scope.links = _getLinks(vm.logservice.isLogged, $state.current.name);
+
+	                $scope.$watch("vm.logservice.isLogged", function () {
+	                        $scope.links = _getLinks(vm.logservice.isLogged, $state.current.name);
+	                });
+
+	                LoginService.getuserinfo().then(function (data) {
+	                        console.log('logelem get userinfo');
+	                        vm.username = data.username;
+	                        vm.isLogged = data.islogged;
+	                        vm.changeCC = data.changeCC;
+	                        vm.createSubscr = data.createSubscr;
+
+	                        vm.InvoiceID = data.InvoiceID;
+	                });
+	        }
+	        _controller.$inject = ["_", "$scope", "$state", "LoginService"];
+	};
 
 /***/ },
 /* 23 */
@@ -49237,7 +48424,7 @@ webpackJsonp([0],[
 /* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = "<div ng-class=\"{  'mobile': (breakpoint.xs||breakpoint.sm)  , 'break_xs': breakpoint.xs, 'break_sm': breakpoint.sm, 'break_md': breakpoint.md, 'break_lg': breakpoint.lg }\">\r\n\r\n\r\n    <nav id=\"top-header\" class=\"navbar navbar-dark bg-inverse\" ng-class=\"{  'mobile': (breakpoint.xs||breakpoint.sm)  , 'break_xs': breakpoint.xs, 'break_sm': breakpoint.sm, 'break_md': breakpoint.md, 'break_lg': breakpoint.lg }\">\r\n\r\n        \r\n\r\n        <a class=\"navbar-brand\" ng-hide=\"!vm.logservice.isLogged\" ui-sref-opts=\"{reload: true, notify: true}\" ui-sref=\"tryit({ scrollto:'.try-now'})\">\r\n            <img src=\"" + __webpack_require__(26) + "\" />\r\n            <h4>Qualified Business Leads</h4>\r\n        </a>\r\n\r\n        <a class=\"navbar-brand\" ng-hide=\"vm.logservice.isLogged\" ui-sref-opts=\"{reload: true, notify: true}\" ui-sref=\"home({ scrollto:'#start-now'})\" >\r\n            <img src=\"" + __webpack_require__(26) + "\" />\r\n            <h4>Qualified Business Leads</h4>\r\n        </a>\r\n\r\n        <!-- Toggle Button -->\r\n        <button class=\"navbar-toggler hidden-sm-up pull-right\" type=\"button\" data-toggle=\"collapse\" data-target=\"#nav-content\">\r\n            ☰\r\n        </button>\r\n\r\n        <!-- Nav Content -->\r\n        <div class=\"collapse navbar-toggleable-xs  \" id=\"nav-content\">\r\n            <ul class=\"nav navbar-nav pull-right\">\r\n\r\n                <!--  2016-09-28  -->\r\n                <li class=\"nav-item\" ng-if=\"breakpoint.md || breakpoint.lg\">\r\n                    <a class=\"nav-link btn btn-sm button_blue_01\" ui-sref=\"selectsubscriptiontype\" ng-show=\"vm.createSubscr\">\r\n                        Activate Subscription\r\n                    </a>\r\n                </li>\r\n\r\n\r\n\r\n                <li class=\"nav-item\" ng-repeat=\"item in links\">\r\n                    <a class=\"nav-link\" ui-sref-active=\"active\" ui-sref=\"{{item.link}}\" ui-sref-opts=\"{reload: true, notify: true}\" ng-bind=\"item.title\">>{{item.title}}<</a>\r\n                </li>\r\n            </ul>\r\n        </div>\r\n\r\n\r\n        <div class=\"_abs _login\">\r\n\r\n            <login-element1st></login-element1st>\r\n\r\n\r\n        </div>\r\n\r\n    </nav>\r\n\r\n\r\n</div>";
+	module.exports = "<div ng-class=\"{  'mobile': (breakpoint.xs||breakpoint.sm)  , 'break_xs': breakpoint.xs, 'break_sm': breakpoint.sm, 'break_md': breakpoint.md, 'break_lg': breakpoint.lg }\">\r\n\r\n\r\n    <nav id=\"top-header\" class=\"navbar navbar-dark bg-inverse\" ng-class=\"{  'mobile': (breakpoint.xs||breakpoint.sm)  , 'break_xs': breakpoint.xs, 'break_sm': breakpoint.sm, 'break_md': breakpoint.md, 'break_lg': breakpoint.lg }\">\r\n\r\n        \r\n\r\n        <a class=\"navbar-brand\" ng-hide=\"!vm.logservice.isLogged\" ui-sref-opts=\"{reload: true, notify: true}\" ui-sref=\"tryit({ scrollto:'.try-now'})\">\r\n            <img src=\"" + __webpack_require__(26) + "\" />\r\n            <h4>Qualified Business Leads</h4>\r\n        </a>\r\n\r\n        <a class=\"navbar-brand\" ng-hide=\"vm.logservice.isLogged\" ui-sref-opts=\"{reload: true, notify: true}\" ui-sref=\"home({ scrollto:'#start-now'})\" >\r\n            <img src=\"" + __webpack_require__(26) + "\" />\r\n            <h4>Qualified Business Leads</h4>\r\n        </a>\r\n\r\n        <!-- Toggle Button -->\r\n        <button class=\"navbar-toggler hidden-sm-up pull-right\" type=\"button\" data-toggle=\"collapse\" data-target=\"#nav-content\">\r\n            ☰\r\n        </button>\r\n\r\n        <!-- Nav Content -->\r\n        <div class=\"collapse navbar-toggleable-xs  \" id=\"nav-content\">\r\n            <ul class=\"nav navbar-nav pull-right\">\r\n\r\n                <!--  2016-09-28  -->\r\n                <li class=\"nav-item\" ng-if=\"breakpoint.md || breakpoint.lg\">\r\n                    <a class=\"nav-link btn btn-sm button_blue_01\" ui-sref=\"selectsubscriptiontype\" ng-show=\"vm.createSubscr\">\r\n                        Activate Subscription\r\n                    </a>\r\n                </li>\r\n\r\n\r\n\r\n                <li class=\"nav-item\" ng-repeat=\"item in links\">\r\n\r\n                    <!--\r\n                    <a class=\"nav-link\" ui-sref-active=\"active\" ui-sref=\"{{item.link}}\" ui-sref-opts=\"{reload: true, notify: true}\" ng-bind=\"item.title\">>{{item.title}}<</a>\r\n                    -->\r\n\r\n                    <a class=\"nav-link\" ng-class=\"{ 'active':item.active }\" ui-sref=\"{{item.link}}\" ui-sref-opts=\"{reload: true, notify: true}\" ng-bind=\"item.title\">>{{item.title}}<</a>\r\n\r\n                </li>\r\n            </ul>\r\n        </div>\r\n\r\n\r\n        <div class=\"_abs _login\">\r\n\r\n            <login-element1st></login-element1st>\r\n\r\n\r\n        </div>\r\n\r\n    </nav>\r\n\r\n\r\n</div>";
 
 /***/ },
 /* 26 */
@@ -49263,63 +48450,73 @@ webpackJsonp([0],[
 
 	    app.directive('footerInfo', _FooterInfo);
 
-	    function _FooterInfo()
-	    {
-	        var _res =
-	        {
+	    function _FooterInfo() {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(33),
-	            controller: ["$state", "FFD_CONST", _controller],
+	            //            controller: ["$state", "FFD_CONST",  _controller],
+	            controller: /* @ngInject */_controller,
 	            controllerAs: 'vm'
 	        };
 
 	        return _res;
 
+	        function _getLinks(_islogged, _vm) {
 
-	        function _controller($state, FFD_CONST )
-	        {
+	            _vm.links_1 = [{ title: "About", link: "about" }, { title: "LeadFormulator", link: _islogged ? "tryit" : "home({ scrollto:'#start-now'})" }, { title: "Pricing", link: "pricing" }, { title: "FAQ", link: "faq" }, { title: "Privacy", link: "faq({ scrollto:'#faq-privacy' })" }];
+
+	            _vm.links_2 = [{ title: "Contact", link: "contact" }, { title: "How It Works", link: "howitworks" }, { title: "Your Data PRO", link: "yourdatapro" }, { title: "Sign In", link: "login" }, { title: "Terms & Conditions", link: "faq({ scrollto:'#faq-terms'})" }, { title: "NewsLetter", link: "newsletter" }];
+
+	            _vm.links_all = _vm.links_1.concat(_vm.links_2);
+	        }
+
+	        function _controller($scope, $state, FFD_CONST, LoginService) {
 	            var vm = this;
+	            vm.logservice = LoginService;
 
-
-	            vm.links_1 =
-	                [
-	                    { title: "About", link: "about" },
-	//                    { title: "Try It", link: "tryit" },
-	                    { title: "LeadFormulator", link: "tryit" },
-
-	                    { title: "Pricing", link: "pricing" },
-	                    { title: "FAQ", link: "faq" },
-	                    { title: "Privacy", link: "faq({ scrollto:'#faq-privacy' })" }
+	            /*
+	                        vm.links_1 =
+	                            [
+	                                { title: "About", link: "about" },
+	                                { title: "LeadFormulator", link: vm.logservice.isLogged ? "tryit" : "home({ scrollto:'#start-now'})" },
+	            
+	                                { title: "Pricing", link: "pricing" },
+	                                { title: "FAQ", link: "faq" },
+	                                { title: "Privacy", link: "faq({ scrollto:'#faq-privacy' })" }
+	                            ];
+	            
+	            
+	                        vm.links_2 =
+	                            [
+	                                { title: "Contact", link: "contact" },
+	                                { title: "How It Works", link: "howitworks" },
+	                                { title: "Your Data PRO", link: "yourdatapro" },
+	                                { title: "Sign In", link: "login" },
+	                                { title: "Terms & Conditions", link: "faq({ scrollto:'#faq-terms'})" }
+	                              , { title: "NewsLetter", link: "newsletter" }
 	                ];
+	            
+	                        vm.links_all = vm.links_1.concat(vm.links_2);
+	            */
 
+	            _getLinks(vm.logservice.isLogged.vm, vm);
 
-	            vm.links_2 =
-	                [
-	                    { title: "Contact", link: "contact" },
-	                    { title: "How It Works", link: "howitworks" },
-	                    { title: "Your Data PRO", link: "yourdatapro" },
-	                    { title: "Sign In", link: "login" },
-	                    { title: "Terms & Conditions", link: "faq({ scrollto:'#faq-terms'})" }
-	                  , { title: "NewsLetter", link: "newsletter" }
-	    ];
-
-	            vm.links_all = vm.links_1.concat(vm.links_2);
+	            $scope.$watch("vm.logservice.isLogged", function () {
+	                _getLinks(vm.logservice.isLogged, vm);
+	            });
 
 	            vm.scl_fb = FFD_CONST.SOCIAL_FB_LINK;
 	            vm.scl_tw = FFD_CONST.SOCIAL_TW_LINK;
 	            vm.scl_in = FFD_CONST.SOCIAL_IN_LINK;
 
-	            vm.goto=function(_link)
-	            {
+	            vm.goto = function (_link) {
 	                $state.go(_link);
-	            }
-
+	            };
 	        }
+	        _controller.$inject = ["$scope", "$state", "FFD_CONST", "LoginService"];
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 29 */
@@ -49347,10 +48544,8 @@ webpackJsonp([0],[
 
 	    app.directive('slideShow', _SlideShow);
 
-	    function _SlideShow()
-	    {
-	        var _res =
-	        {
+	    function _SlideShow() {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            scope: {},
@@ -49362,13 +48557,8 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
-
-
-
 	    /* @ngInject */
-	    function _SlideShow_Controller( InfoFactory, ChoicesFactory, LoginService)
-	    {
+	    function _SlideShow_Controller(InfoFactory, ChoicesFactory, LoginService) {
 
 	        var vm = this;
 	        vm.bustypes = InfoFactory.bustypes;
@@ -49378,10 +48568,7 @@ webpackJsonp([0],[
 	        angular.element('#carousel-example-generic').carousel('cycle');
 	    }
 	    _SlideShow_Controller.$inject = ["InfoFactory", "ChoicesFactory", "LoginService"];;
-
-
-
-	}
+	};
 
 /***/ },
 /* 35 */
@@ -49427,14 +48614,12 @@ webpackJsonp([0],[
 	'use strict';
 
 	__webpack_require__(43);
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 
 	    app.directive('infoList', _InfoList);
 
 	    function _InfoList() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            scope: {},
@@ -49446,46 +48631,18 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-	    function _controller()
-	    {
+	    function _controller() {
 	        var vm = this;
 
-	        var detail_1 =
-	            [
-	        'We extract several business attributes through sophisticated text mining technologies.',
-	        'This information is monitored and updated daily, providing you with you purest,most accurate',
-	        'data in the industry.'
-	            ].join(' ');
+	        var detail_1 = ['We extract several business attributes through sophisticated text mining technologies.', 'This information is monitored and updated daily, providing you with you purest,most accurate', 'data in the industry.'].join(' ');
 
-	        var detail_2 =
-	            [
-	                    'We gather data on new businesses the',
-	                    'minute they go public and make them',
-	                    'available to you record fast compared to',
-	                    'competitor business lead lists, which',
-	                    'are often up to 45 days stale.'
-	            ].join(' ');
+	        var detail_2 = ['We gather data on new businesses the', 'minute they go public and make them', 'available to you record fast compared to', 'competitor business lead lists, which', 'are often up to 45 days stale.'].join(' ');
 
-	        var detail_3 =
-	            [
-	                    'You\'re just minutes away from reaching',
-	                    'new businesses and existing businesses',
-	                    'in your area. Make selections to',
-	                    'customize your list. Choose by state,',
-	                    'and narrow by city or by 5-digit zip',
-	                    'code.'
-	            ].join(' ');
+	        var detail_3 = ['You\'re just minutes away from reaching', 'new businesses and existing businesses', 'in your area. Make selections to', 'customize your list. Choose by state,', 'and narrow by city or by 5-digit zip', 'code.'].join(' ');
 
-	        vm.items =
-	            [
-	                { title: "Discover the most advanced source of new business data", icon: "fa-bar-chart", detail: detail_1, scrollto: '.hitw-calendar:visible' },
-	                { title: "Now you can tap into new business leads as soon as they are available", icon: "fa-clock-o", detail: detail_2, scrollto: '.hitw-chart:visible' },
-	                { title: "Construct your leads list with options that are important to you", icon: "fa-file-text", detail: detail_3, scrollto: '.hitw-map:visible' }
-	            ];
+	        vm.items = [{ title: "Discover the most advanced source of new business data", icon: "fa-bar-chart", detail: detail_1, scrollto: '.hitw-calendar:visible' }, { title: "Now you can tap into new business leads as soon as they are available", icon: "fa-clock-o", detail: detail_2, scrollto: '.hitw-chart:visible' }, { title: "Construct your leads list with options that are important to you", icon: "fa-file-text", detail: detail_3, scrollto: '.hitw-map:visible' }];
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 43 */
@@ -49513,13 +48670,11 @@ webpackJsonp([0],[
 	    app.directive('ffdSearchPanel', _FfdSearchPanelDirective);
 	    app.directive('ffdSearchPanelItem', _FfdSearchPanelItemDirective);
 
-	    function _FfdSearchPanelDirective()
-	    {
-	        var _res =
-	        {
+	    function _FfdSearchPanelDirective() {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
-	//            scope:true,
+	            //            scope:true,
 	            transclude: true,
 	            template: __webpack_require__(49)
 	        };
@@ -49527,20 +48682,18 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
 	    function _FfdSearchPanelItemDirective() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            scope: { idclps: '@', idhdng: '@', title: '@', info: '@' },
-	            transclude:true,
+	            transclude: true,
 	            /*
 	            transclude:
 	                {
 	                    'title' : '?itemTitle',
 	                    'info'  : '?itemInfo'
-	        },*/
+	            },*/
 	            template: __webpack_require__(50)
 	            /*
 	            ,link: function (scope, element, attrs) {
@@ -49554,13 +48707,7 @@ webpackJsonp([0],[
 
 	        return _res;
 	    }
-
-
-
-
-
-
-	}
+	};
 	module.exports.$inject = ["app"];
 
 /***/ },
@@ -49588,52 +48735,62 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	__webpack_require__(52);
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    app.directive('loginElement1st', _LoginElementDirective);
 
-
-
-	      function _LoginElementDirective()
-	    {
+	    function _LoginElementDirective() {
 	        // Usage:
 	        //     <LoginElementdirective></LoginElementdirective>
 	        // Creates:
 	        // 
-	        var directive =
-	        {
+	        var directive = {
 	            restrict: 'EA',
 	            replace: true,
 	            template: __webpack_require__(54),
-	//            scope: false,
-	            controller: [ "$state", "$scope", "LoginService", "toaster", loginElement1st_controller],
+	            //            scope: false,
+	            controller: ["$state", "$scope", "LoginService", "toaster", loginElement1st_controller],
 	            controllerAs: 'vm'
 	        };
 	        return directive;
 
+	        /*
+	        function _getLinks(_islogged) {
+	          var _arr=
+	          [
+	              { title: 'HOME', link: 'home' },
+	              { title: 'ABOUT', link: 'about' },
+	              { title: 'LeadFormulator'  , link: _islogged ? "tryit" : "home({ scrollto:'#start-now'})" },
+	        { title: 'PRICING', link: 'pricing' },
+	              { title: 'FAQ', link: 'faq' },
+	              { title: 'CONTACT', link: 'contact' },
+	              { title: 'HOW IT WORKS', link: 'howitworks' },
+	              { title: 'YOUR DATA PRO', link: 'yourdatapro' }
+	        ];
+	        return _arr;
+	        }
+	         */
 
-
-	        
-	        function loginElement1st_controller( $state, $scope, LoginService, toaster)         
-	        {
+	        function loginElement1st_controller($state, $scope, LoginService, toaster) {
 	            var vm = this;
 	            vm.username = "";
 	            vm.isLogged = false;
 	            vm.isAdmin = false;
 	            vm.logservice = LoginService;
 
-	            $scope.$on('ChangeUserStatus', function (event, data)
-	            {
+	            //            vm.links = [];
+	            //            vm.links = _getLinks(vm.logservice.isLogged);
 
-	/*
-	                vm.username = data.username;
-	                vm.isLogged = data.islogged;
-	                vm.isAdmin = data.isadmin;
-	*/
+
+	            $scope.$on('ChangeUserStatus', function (event, data) {
+
+	                /*
+	                                vm.username = data.username;
+	                                vm.isLogged = data.islogged;
+	                                vm.isAdmin = data.isadmin;
+	                */
 
 	                vm.username = data.username;
 	                vm.isLogged = data.islogged;
@@ -49641,59 +48798,42 @@ webpackJsonp([0],[
 	                vm.changeCC = data.changeCC;
 	                vm.createSubscr = data.createSubscr;
 
+	                //                vm.links = _getLinks(vm.logservice.isLogged);
 	            });
 
 	            vm.logout = function () {
 
 	                console.log('start logout');
-	                LoginService.logout()
-	                .then(
-	                function (data) {
+	                LoginService.logout().then(function (data) {
 
-	                    LoginService.getuserinfo()
-	                    .then(function (data) {
+	                    LoginService.getuserinfo().then(function (data) {
 	                        console.log('logout rez  ', data);
 	                        vm.username = data.username;
 	                        vm.isLogged = data.islogged;
 	                        vm.isAdmin = data.isadmin;
 	                        $state.go('home');
-	                        toaster.pop('info', 'You are logged out !')
+	                        toaster.pop('info', 'You are logged out !');
 	                    });
+	                });
+	            };
 
-
-
-	                }
-	                );
-	            }
-
-	            vm.login = function (_suc_state)
-	            {
+	            vm.login = function (_suc_state) {
 	                LoginService.enterloginform(_suc_state || $state.current.name, $state.current.name);
 	            };
 
-	            LoginService.getuserinfo()
-	            .then(
-
-	            function (data)
-	            {
+	            LoginService.getuserinfo().then(function (data) {
 	                console.log('logelem get userinfo');
 	                vm.username = data.username;
 	                vm.isLogged = data.islogged;
-	/*  2016-09-28*/
+	                /*  2016-09-28*/
 	                vm.changeCC = data.changeCC;
 	                vm.createSubscr = data.createSubscr;
 
 	                vm.InvoiceID = data.InvoiceID;
-	            }
-	            );
-
-
+	            });
 	        }
-
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 52 */
@@ -49714,23 +48854,19 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    app.directive('loginElement2nd', _LoginElementDirective);
 
-	//    LoginElementDirective.$inject = ['$window', '$state', 'LoginService'];
+	    //    LoginElementDirective.$inject = ['$window', '$state', 'LoginService'];
 
-	//    function _LoginElementDirective($window, $state, LoginService)     
-	      function _LoginElementDirective()
-	    {
+	    //    function _LoginElementDirective($window, $state, LoginService)     
+	    function _LoginElementDirective() {
 	        // Usage:
 	        //     <LoginElementdirective></LoginElementdirective>
 	        // Creates:
 	        // 
-	        var directive =
-	        {
+	        var directive = {
 	            restrict: 'EA',
 	            replace: true,
 	            template: __webpack_require__(56),
@@ -49740,10 +48876,8 @@ webpackJsonp([0],[
 	        };
 	        return directive;
 
-
-	          /* @ngInject */
-	        function loginElement2nd_controller($state, $scope, LoginService, GetResultsFactory, toaster)
-	        {
+	        /* @ngInject */
+	        function loginElement2nd_controller($state, $scope, LoginService, GetResultsFactory, toaster) {
 	            var vm = this;
 
 	            vm.username = "";
@@ -49754,20 +48888,13 @@ webpackJsonp([0],[
 	            vm.counters = { isLoaded: false, _leftcount: 0 };
 	            vm.needActivate = false;
 
+	            GetResultsFactory.getCounters().then(function (data) {
+	                vm.counters.isLoaded = true;
+	                vm.counters._leftcount = data.leftcount;
+	                vm.needActivate = vm.counters._leftcount == 0;
+	            });
 
-	            GetResultsFactory.getCounters()
-	                   .then(function (data)
-	                   {
-	                       vm.counters.isLoaded = true;
-	                       vm.counters._leftcount = data.leftcount;
-	                       vm.needActivate = vm.counters._leftcount == 0;
-	                   });
-
-
-
-
-	            $scope.$on('ChangeUserStatus', function (event, data)
-	            {
+	            $scope.$on('ChangeUserStatus', function (event, data) {
 	                vm.username = data.username;
 	                vm.isLogged = data.islogged;
 	                vm.isAdmin = data.isadmin;
@@ -49775,16 +48902,12 @@ webpackJsonp([0],[
 	                vm.createSubscr = data.createSubscr;
 	            });
 
-
 	            vm.logout = function () {
 
 	                console.log('start logout');
-	                LoginService.logout()
-	                .then(
-	                function (data) {
+	                LoginService.logout().then(function (data) {
 
-	                    LoginService.getuserinfo()
-	                    .then(function (data) {
+	                    LoginService.getuserinfo().then(function (data) {
 	                        console.log('logout rez  ', data);
 	                        vm.username = data.username;
 	                        vm.isLogged = data.islogged;
@@ -49794,25 +48917,16 @@ webpackJsonp([0],[
 	                        vm.InvoiceID = data.InvoiceID;
 
 	                        $state.go('home');
-	                        toaster.pop('info', 'You are logged out !')
+	                        toaster.pop('info', 'You are logged out !');
 	                    });
+	                });
+	            };
 
-
-
-	                }
-	                );
-	            }
-
-	            vm.login = function ()
-	            {
+	            vm.login = function () {
 	                LoginService.enterloginform($state.current.name, $state.current.name);
 	            };
 
-
-	            LoginService.getuserinfo()
-	            .then(
-
-	            function (data) {
+	            LoginService.getuserinfo().then(function (data) {
 	                console.log('logelem get userinfo');
 	                vm.username = data.username;
 	                vm.isLogged = data.islogged;
@@ -49820,21 +48934,11 @@ webpackJsonp([0],[
 	                vm.changeCC = data.changeCC;
 	                vm.createSubscr = data.createSubscr;
 	                vm.InvoiceID = data.InvoiceID;
-
-	            }
-	            );
-
-
-
-
-
+	            });
 	        }
 	        loginElement2nd_controller.$inject = ["$state", "$scope", "LoginService", "GetResultsFactory", "toaster"];
-
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 56 */
@@ -49848,28 +48952,19 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
 	    app.directive('currentCriteries', _CurrentCriteriesDirective);
 
+	    function _CurrentCriteriesDirective() {
 
-	    function _CurrentCriteriesDirective()
-	    {
-
-
-	        var directive =
-	        {
+	        var directive = {
 	            restrict: 'EA',
 	            replace: false,
 	            template: __webpack_require__(58),
-	            scope: { choices:'='},
-	//            controller: _controller,
-	//            controllerAs: 'vm',
-	//            bindToController: true
+	            scope: { choices: '=' }
 	        };
 
 	        return directive;
@@ -49880,14 +48975,8 @@ webpackJsonp([0],[
 	            vm.choices = ChoicesFactory.choices;
 	        }
 	        _controller.$inject = ["ChoicesFactory"];
-
-
-
-
 	    }
-	}
-
-
+	};
 
 /***/ },
 /* 58 */
@@ -49907,13 +48996,11 @@ webpackJsonp([0],[
 
 	module.exports = function (app) {
 
-	    app.directive('faqPanel', _FaqPanelDirective );
+	    app.directive('faqPanel', _FaqPanelDirective);
 	    app.directive('faqPanelItem', _FaqPanelItemDirective);
 
-	    function _FaqPanelDirective()
-	    {
-	        var _res =
-	        {
+	    function _FaqPanelDirective() {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
 	            scope: { title: '@' },
@@ -49924,26 +49011,18 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
 	    function _FaqPanelItemDirective() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
-	            scope: {  iditem: '@', title: '@',  },
-	            transclude:true,
+	            scope: { iditem: '@', title: '@' },
+	            transclude: true,
 	            template: __webpack_require__(63)
 	        };
 
 	        return _res;
 	    }
-
-
-
-
-
-
-	}
+	};
 	module.exports.$inject = ["app"];
 
 /***/ },
@@ -49982,10 +49061,8 @@ webpackJsonp([0],[
 	    app.directive('orangeBar', _OrangeBar);
 	    app.directive('orangeBar2', _OrangeBar2);
 
-	    function _OrangeBar()
-	    {
-	        var _res =
-	        {
+	    function _OrangeBar() {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
 	            scope: { title: '@' },
@@ -49993,8 +49070,7 @@ webpackJsonp([0],[
 	            template: __webpack_require__(67)
 	            /*
 	            ,controller: function ($scope, $sce) {
-
-	                $scope.$watch('title', function (value) {
+	                  $scope.$watch('title', function (value) {
 	                    $scope.htmltitle = $sce.trustAsHtml(value);
 	                })
 	            }*/
@@ -50003,11 +49079,8 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
-
 	    function _OrangeBar2() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
 	            scope: { title: '@' },
@@ -50017,12 +49090,7 @@ webpackJsonp([0],[
 
 	        return _res;
 	    }
-
-
-
-
-
-	}
+	};
 
 /***/ },
 /* 65 */
@@ -50049,16 +49117,13 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	__webpack_require__(70);
 
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 	    __webpack_require__(72)(app);
 	    __webpack_require__(73)(app);
 	    __webpack_require__(79)(app);
-	}
-
+	};
 
 /***/ },
 /* 70 */
@@ -50071,54 +49136,40 @@ webpackJsonp([0],[
 /* 72 */
 /***/ function(module, exports) {
 
-	'use strict'
+	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 	    app.controller('SaveTemplateController', SaveTemplateController);
 
 	    /* @ngInject */
-	    function SaveTemplateController($scope, LoginService)
-	    {
-	        $scope.data =
-	            {
-	                templatename: "",
-	                load: false,
-	                random: true,
-	                limit: 0, //5000,
-	                max_val: 0, //5000,
-	                isenable: false
-	            };
+	    function SaveTemplateController($scope, LoginService) {
+	        $scope.data = {
+	            templatename: "",
+	            load: false,
+	            random: true,
+	            limit: 0, //5000,
+	            max_val: 0, //5000,
+	            isenable: false
+	        };
 
-
-	        LoginService.getuserinfo().then(
-	            function (data)
-	            {
-	                var _leftcount = parseInt(data.leftcount);
-	                _leftcount = isNaN(_leftcount) ? 0 : _leftcount;
-	                if (_leftcount < 5000)
-	                {
-	                    $scope.max_val = _leftcount;
-	                    $scope.limit = _leftcount;
-	                }
+	        LoginService.getuserinfo().then(function (data) {
+	            var _leftcount = parseInt(data.leftcount);
+	            _leftcount = isNaN(_leftcount) ? 0 : _leftcount;
+	            if (_leftcount < 5000) {
+	                $scope.max_val = _leftcount;
+	                $scope.limit = _leftcount;
 	            }
-	            );
+	        });
 
-	        $scope.$watch("data.templatename",
-	            function (_new, _old) {
-	                $scope.data.isenable = ($scope.data.templatename != "") && ($scope.data.templatename.length > 0);
-	            });
+	        $scope.$watch("data.templatename", function (_new, _old) {
+	            $scope.data.isenable = $scope.data.templatename != "" && $scope.data.templatename.length > 0;
+	        });
 	    }
 	    SaveTemplateController.$inject = ["$scope", "LoginService"];
 
+	    //    return SaveTemplateController;
 
-
-
-	//    return SaveTemplateController;
-
-
-	}
+	};
 
 /***/ },
 /* 73 */
@@ -50126,20 +49177,16 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-
-	{
+	module.exports = function (app) {
 
 	    app.directive('searchBlock', _directive);
 	    app.directive('mobileSearchBlock', _mobiledirective);
 
 	    function _directive() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
-	            scope:false,
+	            scope: false,
 	            template: __webpack_require__(74),
 	            controller: __webpack_require__(75)(app),
 	            controllerAs: 'vm'
@@ -50149,8 +49196,7 @@ webpackJsonp([0],[
 	    }
 
 	    function _mobiledirective() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
 	            scope: false,
@@ -50161,10 +49207,7 @@ webpackJsonp([0],[
 
 	        return _res;
 	    }
-
-
-
-	}
+	};
 
 /***/ },
 /* 74 */
@@ -50178,16 +49221,10 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
-
-
-
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function _SearchController($q, $http, $scope, $state, $localStorage, $timeout, _ , createDialog, toaster, FFD_CONST, InfoFactory, ChoicesFactory, GetResultsFactory, LoginService, ToolsService)
-	    {
+	    function _SearchController($q, $http, $scope, $state, $localStorage, $timeout, _, createDialog, toaster, FFD_CONST, InfoFactory, ChoicesFactory, GetResultsFactory, LoginService, ToolsService) {
 
 	        var _frst = true;
 
@@ -50198,22 +49235,23 @@ webpackJsonp([0],[
 	        vm.breakpoint = {};
 	        vm.mobile = false;
 
-	        $scope.$watch(function () { return (vm.breakpoint.xs || vm.breakpoint.sm); }, function (_new, _old) { vm.mobile = _new; });
-	        $scope.$watch(function () { return (vm.choices.chkPhoneNumbers && !vm.mobile); }, function (_new, _old) { if (_new && !_old) vm.askAboutPopup(); });
-
-
-	        
-
+	        $scope.$watch(function () {
+	            return vm.breakpoint.xs || vm.breakpoint.sm;
+	        }, function (_new, _old) {
+	            vm.mobile = _new;
+	        });
+	        $scope.$watch(function () {
+	            return vm.choices.chkPhoneNumbers && !vm.mobile;
+	        }, function (_new, _old) {
+	            if (_new && !_old) vm.askAboutPopup();
+	        });
 
 	        vm.choices = ChoicesFactory.choices;
 
-	        var _diff_m_1 = moment().diff((vm.choices._date_start_), 'months', false) + 1;
+	        var _diff_m_1 = moment().diff(vm.choices._date_start_, 'months', false) + 1;
 	        var _diff_m_2 = 9;
 	        var _diff_m = Math.max(_diff_m_1, _diff_m_2);
 	        var _minDate = "-" + _diff_m_2 + "m";
-
-
-
 
 	        var _start_date = moment(vm.choices._date_start_);
 	        var _end_date = moment(vm.choices._date_end_);
@@ -50223,33 +49261,22 @@ webpackJsonp([0],[
 	        if (_start_date.diff(_min_date, 'days') < 0) vm.choices._date_start_ = _min_date.toDate();
 	        if (_end_date.diff(_min_date, 'days') < 0) vm.choices._date_end_ = _min_date.toDate();
 
-
-
-
-
 	        vm.dateoptions_start = { minDate: _minDate, maxDate: "+1d" };
 	        vm.dateoptions_end = { minDate: _minDate, maxDate: "+1d" };
 
+	        //        vm.dateoptions_start = { minDate: "-9m", maxDate: "+1d" };
+	        //        vm.dateoptions_end = { minDate: "-9m", maxDate: "+1d" };
 
-	//        vm.dateoptions_start = { minDate: "-9m", maxDate: "+1d" };
-	//        vm.dateoptions_end = { minDate: "-9m", maxDate: "+1d" };
-
-	//        vm.change_date_start = function () { vm.dateoptions.minDate = "-10d";  };
-
-
-	        $scope.$watch('vm.choices.date_start_',
-	            function () {
-	                vm.dateoptions_end.minDate = vm.choices.date_start_;
-	            }
-	            );
-
-	        $scope.$watch('vm.choices.date_end_',
-	            function () {
-	                vm.dateoptions_start.maxDate = vm.choices.date_end_;
-	            }
-	            );
+	        //        vm.change_date_start = function () { vm.dateoptions.minDate = "-10d";  };
 
 
+	        $scope.$watch('vm.choices.date_start_', function () {
+	            vm.dateoptions_end.minDate = vm.choices.date_start_;
+	        });
+
+	        $scope.$watch('vm.choices.date_end_', function () {
+	            vm.dateoptions_start.maxDate = vm.choices.date_end_;
+	        });
 
 	        vm.bustypes = InfoFactory.bustypes;
 	        vm.companysizes = InfoFactory.companysizes;
@@ -50263,19 +49290,19 @@ webpackJsonp([0],[
 	        vm.areacodes = [];
 	        vm.view_list_title = "View List";
 
-	        $scope.$watch(
-	            function ($scope) { return (vm.results.isLoaded && vm.results.islogged && (!vm.results.createSubscr) ? 'View List' : 'Preview List'); }
-	            , function (_new, _old) { vm.view_list_title = _new;}
-	            );
+	        $scope.$watch(function ($scope) {
+	            return vm.results.isLoaded && vm.results.islogged && !vm.results.createSubscr ? 'View List' : 'Preview List';
+	        }, function (_new, _old) {
+	            vm.view_list_title = _new;
+	        });
 
-	        $scope.$watch
-	            (
-	            function ($scope) { return angular.toJson(_.omit(vm.choices, ['_random_Data', '_count_Data'])); },
-	            function (_new, _old) { vm.results.isLoaded2 = false; }
-	            );
+	        $scope.$watch(function ($scope) {
+	            return angular.toJson(_.omit(vm.choices, ['_random_Data', '_count_Data']));
+	        }, function (_new, _old) {
+	            vm.results.isLoaded2 = false;
+	        });
 
-	        vm.set2start = function ()
-	        {
+	        vm.set2start = function () {
 
 	            ChoicesFactory.clear_choices();
 
@@ -50284,11 +49311,9 @@ webpackJsonp([0],[
 	            var _diff_m_2 = 9;
 	            var _diff_m = Math.max(_diff_m_1, _diff_m_2);
 	            var _minDate = "-" + _diff_m_2 + "m";
-
-	            vm.dateoptions_start = { minDate: _minDate , maxDate: "+1d" };
+	              vm.dateoptions_start = { minDate: _minDate , maxDate: "+1d" };
 	            vm.dateoptions_end   = { minDate: _minDate, maxDate: "+1d" };
 	             */
-
 
 	            angular.element('input[name=date_start]').val(vm.choices.date_start);
 	            angular.element('input[name=date_end]').val(vm.choices.date_end);
@@ -50296,53 +49321,35 @@ webpackJsonp([0],[
 	            vm.refresh_counters();
 	        };
 
-	        vm.results = { _count: 0, _leftcount: 0, _demo: false, isLoaded: false, isLoaded2: false, _invoiceid: 0, _enablelist: false, _disablelist:false };
-	        vm.check_enablelist = function ()
-	        {
-	            vm.results._enablelist = (+vm.results._invoiceid == 0) || ((+vm.results._count > 0) && (+vm.results._leftcount >= +vm.results._count));
-	            vm.results._disablelist = (!vm.results.islogged)||(vm.results.createSubscr) || (!vm.results._enablelist) || (vm.results._count == 0) || (vm.results.isDataLoaded);
+	        vm.results = { _count: 0, _leftcount: 0, _demo: false, isLoaded: false, isLoaded2: false, _invoiceid: 0, _enablelist: false, _disablelist: false };
+	        vm.check_enablelist = function () {
+	            vm.results._enablelist = +vm.results._invoiceid == 0 || +vm.results._count > 0 && +vm.results._leftcount >= +vm.results._count;
+	            vm.results._disablelist = !vm.results.islogged || vm.results.createSubscr || !vm.results._enablelist || vm.results._count == 0 || vm.results.isDataLoaded;
 	        };
 
-
-
-	        vm.refresh_counters = function ()
-	        {
+	        vm.refresh_counters = function () {
 
 	            vm.results.isLoaded = false;
 
-	           
-	            var _prms = $q.all([GetResultsFactory.getCounters(), LoginService.getuserinfo()]).then(
-	                 function (data)
-	                 {
-	                     vm.results =
-	                         angular.extend({},
-	                         {
-	                             _count: data[0].count,
-	                             _invoiceid : data[0].invoiceid,
-	                             _leftcount: data[0].leftcount,
-	                             _demo: JSON.parse(data[0].demo.toLowerCase()),
-	                             isLoaded: true,
-	                             isLoaded2: true,
-	                             isDataLoaded: false
-	                         },
-	                         data[1]);
-	                 },
-
-	                 function (error)
-	                 {
-	                     console.log('???>>', error);
-	                     vm.results = { _count: 0, _leftcount: 0, _demo: false, isLoaded: true, isLoaded2: true, isDataLoaded: false };
-	                 }
-
-	                 );
+	            var _prms = $q.all([GetResultsFactory.getCounters(), LoginService.getuserinfo()]).then(function (data) {
+	                vm.results = angular.extend({}, {
+	                    _count: data[0].count,
+	                    _invoiceid: data[0].invoiceid,
+	                    _leftcount: data[0].leftcount,
+	                    _demo: JSON.parse(data[0].demo.toLowerCase()),
+	                    isLoaded: true,
+	                    isLoaded2: true,
+	                    isDataLoaded: false
+	                }, data[1]);
+	            }, function (error) {
+	                console.log('???>>', error);
+	                vm.results = { _count: 0, _leftcount: 0, _demo: false, isLoaded: true, isLoaded2: true, isDataLoaded: false };
+	            });
 
 	            return _prms;
-
 	        };
 
-
-	        vm.getlist = function ()
-	        {
+	        vm.getlist = function () {
 
 	            var request = $http({
 	                method: "post",
@@ -50350,8 +49357,7 @@ webpackJsonp([0],[
 	                data: { _ids: [], _selectall: true }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                console.log(data);
 	                if (data.d.result == "OK") {
 	                    vm.results._leftcount = data.d.userleftcount;
@@ -50367,88 +49373,78 @@ webpackJsonp([0],[
 	                    anchor.appendTo('body');
 
 	                    vm.results.isDataLoaded = true;
-
 	                }
-	            })
-	            .error(function (data, status, headers, config) { });
+	            }).error(function (data, status, headers, config) {});
 	        };
 
 	        vm.getlistbyemail = function () {
 
 	            //            if (vm._leftcount < vm._selected)
-	            if ((!vm.createSubscr) && (vm._leftcount < vm.choices._count_Data)) {
+	            if (!vm.createSubscr && vm._leftcount < vm.choices._count_Data) {
 	                var _message = "This download will exceed your 5,000 record monthly allotment. Please adjust your quantity and try again";
 	                //                toaster.pop('info', _message);
 	                toaster.pop({ type: 'info', body: _message, timeout: 0 });
 	                return;
 	            }
 
-
 	            var request = $http({
 	                method: "post",
 	                url: FFD_CONST.API_BASE_URL + (vm.choices.bustype.id == 1 ? "getNewListByEmail" : "getEstListByEmail"),
 	                //                data: { _ids: vm._SelArr, _selectall: vm._SelAll }
-	//                data: { _ids: vm._SelArr, _selectall: vm._SelAll, _random: _choices._random_Data, _count: _choices._count_Data }
+	                //                data: { _ids: vm._SelArr, _selectall: vm._SelAll, _random: _choices._random_Data, _count: _choices._count_Data }
 	                data: { _ids: [], _selectall: true, _random: vm.choices._random_Data, _count: vm.choices._count_Data }
 
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                console.log(data);
 	                if (data.d.result == "OK") {
-	//                    vm._leftcount = data.d.userleftcount;
+	                    //                    vm._leftcount = data.d.userleftcount;
 
 	                    vm.results._leftcount = data.d.userleftcount;
-	//                    vm.results._invoiceid = data.d.invoiceid;
-
+	                    //                    vm.results._invoiceid = data.d.invoiceid;
 
 
 	                    toaster.pop('success', data.d.message);
 	                    //                    vm.isDataLoaded = true;
 	                    vm.results.isDataLoaded = true;
-
-
 	                }
 	                if (data.d.result == "ERROR" && data.d.errmsg) {
 	                    toaster.pop('error', data.d.errmsg);
 	                }
-	            })
-	            .error(function (data, status, headers, config) {
+	            }).error(function (data, status, headers, config) {
 	                var aa = 66;
 	            });
 	        };
 
-
-
 	        vm.getcities = function (phrase) {
 	            vm.cities = [];
-	            InfoFactory.getcities(phrase, vm.choices.states)
-	            .then(function (_cities) { vm.cities = _cities.cities; });
+	            InfoFactory.getcities(phrase, vm.choices.states).then(function (_cities) {
+	                vm.cities = _cities.cities;
+	            });
 	        };
 
 	        vm.getcounties = function (phrase) {
 	            vm.counties = [];
-	            InfoFactory.getcounties(phrase, vm.choices.states)
-	            .then(function (_counties) { vm.counties = _counties.counties; });
+	            InfoFactory.getcounties(phrase, vm.choices.states).then(function (_counties) {
+	                vm.counties = _counties.counties;
+	            });
 	        };
-
-
 
 	        vm.getkeywords = function (phrase) {
 	            vm.keywords = [];
-	            InfoFactory.getsic2kw(phrase)
-	            .then(function (_kw) { vm.keywords = _kw.keywords; });
+	            InfoFactory.getsic2kw(phrase).then(function (_kw) {
+	                vm.keywords = _kw.keywords;
+	            });
 	        };
 
+	        InfoFactory.getallstates().then(function (_states) {
+	            vm.states = _states.states;
+	        });
 
-
-	        InfoFactory.getallstates()
-	        .then(function (_states) { vm.states = _states.states; });
-
-	        InfoFactory.getsiccodes()
-	        .then(function (_siccodes) { vm.siccodes = _siccodes.siccodes; });
-
+	        InfoFactory.getsiccodes().then(function (_siccodes) {
+	            vm.siccodes = _siccodes.siccodes;
+	        });
 
 	        vm.checkMiles = function () {
 	            var _correct = true;
@@ -50456,9 +49452,13 @@ webpackJsonp([0],[
 	            var _tmp_1 = parseInt("0" + _tmp).toString();
 	            var _tmp_2 = parseInt(_tmp_1);
 
-	            if ((_tmp.length > 0) && (_tmp.length != _tmp_1.length)) { _correct = false; }
+	            if (_tmp.length > 0 && _tmp.length != _tmp_1.length) {
+	                _correct = false;
+	            }
 
-	            if ((!_correct) && _tmp_2 > 999) { _correct = false; }
+	            if (!_correct && _tmp_2 > 999) {
+	                _correct = false;
+	            }
 
 	            if (!_correct) {
 	                $timeout(function () {
@@ -50468,13 +49468,13 @@ webpackJsonp([0],[
 	            }
 	        };
 
-
-
 	        vm.checkZipRadius = function () {
 	            var _correct = true;
 
 	            var _tmp = vm.choices.zipForRadius.trim();
-	            if ((_tmp.length > 0) && (!/^\d{5}$/.test(_tmp))) { _correct = false; }
+	            if (_tmp.length > 0 && !/^\d{5}$/.test(_tmp)) {
+	                _correct = false;
+	            }
 
 	            if (!_correct) {
 	                $timeout(function () {
@@ -50484,274 +49484,201 @@ webpackJsonp([0],[
 	            }
 	        };
 
-
-
 	        vm.save_search = function () {
-	            createDialog(
-	                 {
-	                     id: 'SpecialOffer',
-	                     title: 'Save Search Template',
-	                     css: {
-	                         top: '100px',
-	                         margin: '0 auto'
-	                     },
-	                     template: __webpack_require__(76),
-	                     footerTemplate: __webpack_require__(77),
-	                     backdrop: true
-	                     , success: { label: 'Save Template', fn: _savetemplate }
-	                     , cancel: { label: 'Cancel', fn: _cancel }
-	                     , controller: 'SaveTemplateController as list'
-	                 },
-
-	                 {
-	                     //                     points: _dynamicMarkers
-	                 }
-	             );
-	        }
-
+	            createDialog({
+	                id: 'SpecialOffer',
+	                title: 'Save Search Template',
+	                css: {
+	                    top: '100px',
+	                    margin: '0 auto'
+	                },
+	                template: __webpack_require__(76),
+	                footerTemplate: __webpack_require__(77),
+	                backdrop: true,
+	                success: { label: 'Save Template', fn: _savetemplate },
+	                cancel: { label: 'Cancel', fn: _cancel },
+	                controller: 'SaveTemplateController as list'
+	            }, {
+	                //                     points: _dynamicMarkers
+	            });
+	        };
 
 	        function _savetemplate() {
 	            var _data = this.data;
 	            console.log(_data);
 
-	            GetResultsFactory.addsearchtemplate(_data.templatename,_data.load,_data.random,_data.limit)
-	           .then(function (data) {
-	               console.log('addsearchtemplate then');
-	               if (data && data.result && data.result == "ERROR" && data.message) {
-	                   toaster.pop('error', data.message);
-	               }
-	               if (data && data.result && data.result == "OK") {
-	                   toaster.pop('success', 'Template saved !');
-	               }
-
-
-	           });
+	            GetResultsFactory.addsearchtemplate(_data.templatename, _data.load, _data.random, _data.limit).then(function (data) {
+	                console.log('addsearchtemplate then');
+	                if (data && data.result && data.result == "ERROR" && data.message) {
+	                    toaster.pop('error', data.message);
+	                }
+	                if (data && data.result && data.result == "OK") {
+	                    toaster.pop('success', 'Template saved !');
+	                }
+	            });
 
 	            /* $state.go('selectsubscriptiontype');*/
 	        }
 
-	        function _cancel() { }
+	        function _cancel() {}
 
-
-
-
-
-
-	        vm.previewlist = function ()
-	        {
+	        vm.previewlist = function () {
 	            //            $state.go('previewdata');
 
 
-	//            ToolsService.ChangePreviewData(vm.view_list_title);
+	            //            ToolsService.ChangePreviewData(vm.view_list_title);
 
-	            $q.when(vm.results.isLoaded2 ? 1 : vm.refresh_counters())
-	                .then(
-	                function ()
-	                {
-	                    var _cnt = parseInt(vm.results._count);
-	                    var _left = parseInt(vm.results._leftcount);
+	            $q.when(vm.results.isLoaded2 ? 1 : vm.refresh_counters()).then(function () {
+	                var _cnt = parseInt(vm.results._count);
+	                var _left = parseInt(vm.results._leftcount);
 
-	                    if (isNaN(_cnt)) _cnt = 0;
-	                    if (isNaN(_left)) _left = 0;
+	                if (isNaN(_cnt)) _cnt = 0;
+	                if (isNaN(_left)) _left = 0;
 
-	                    vm.choices._count_Data = (_left == 0) ? _cnt : Math.min(_cnt, _left);
-	                    vm.view_list_title = vm.results.isLoaded && vm.results.islogged && (!vm.results.createSubscr) ? 'View List' : 'Preview List';
+	                vm.choices._count_Data = _left == 0 ? _cnt : Math.min(_cnt, _left);
+	                vm.view_list_title = vm.results.isLoaded && vm.results.islogged && !vm.results.createSubscr ? 'View List' : 'Preview List';
 
-	                    if (vm.results.createSubscr)
-	                    { $state.go('previewdata'); }
-	                    else
-	                    { ToolsService.ChangePreviewData(vm.view_list_title); }
-
+	                if (vm.results.createSubscr) {
+	                    $state.go('previewdata');
+	                } else {
+	                    ToolsService.ChangePreviewData(vm.view_list_title);
 	                }
-
-	                );
-
-
-
+	            });
 	        };
 
-
-
 	        vm.getlist_m0 = function () {
-	            LoginService.getuserinfo()
-	            .then(function (data) {
+	            LoginService.getuserinfo().then(function (data) {
 	                vm.userinfo = data;
-	                if (data.islogged) { vm.getlist_m(); }
-	                else {
+	                if (data.islogged) {
+	                    vm.getlist_m();
+	                } else {
 	                    LoginService.enterloginform($state.current.name, $state.current.name);
 	                }
 	            });
-	        }
+	        };
 
 	        vm.getlist_m = function () {
 	            var sscope = vm.results;
-	            GetResultsFactory.getNeedSubscription()
-	        .then(
-	                function (data) {
-	                    console.log('showcounters needsubscription=' + data.needsubscription);
-	                    console.log('showcounters  _leftcount=' + $scope._leftcount);
-	                    if (sscope._leftcount != 0) {
-	                        console.log('call previewlist');
-	                        vm.previewlist();
-	                        return;
-	                    }
-	//                    activate_dialog('Not Yet, Let Me Preview Data First');
-	                    ToolsService.ActivateDialog('Not Yet, Let Me Preview Data First');
+	            GetResultsFactory.getNeedSubscription().then(function (data) {
+	                console.log('showcounters needsubscription=' + data.needsubscription);
+	                console.log('showcounters  _leftcount=' + $scope._leftcount);
+	                if (sscope._leftcount != 0) {
+	                    console.log('call previewlist');
+	                    vm.previewlist();
+	                    return;
 	                }
-	            );
+	                //                    activate_dialog('Not Yet, Let Me Preview Data First');
+	                ToolsService.ActivateDialog('Not Yet, Let Me Preview Data First');
+	            });
 	        };
 
-
-	        vm.previewlist_m0 = function ()
-	        {
+	        vm.previewlist_m0 = function () {
 	            /*
-
-
-	            $q.when(vm.results.isLoaded2 ? 1 : vm.refresh_counters())
+	                $q.when(vm.results.isLoaded2 ? 1 : vm.refresh_counters())
 	                .then(
 	                function ()
 	                {
 	                    vm.choices._count_Data = parseInt(vm.results._count);
 	                    ToolsService.ChangePreviewData(vm.view_list_title);
 	                }
+	                  );
+	                      return;
+	              */
 
-	                );
-
-
-
-
-
-	            return;
-
-	            */
-
-
-
-
-
-
-	            LoginService.getuserinfo()
-	            .then(
-	                    function (data) {
-	                        if (data.islogged) { vm.previewlist_m(); }
-	                        else {
-	                            LoginService.enterloginform($state.current.name, $state.current.name);
-	                        }
-	                    }
-	                );
-	        }
+	            LoginService.getuserinfo().then(function (data) {
+	                if (data.islogged) {
+	                    vm.previewlist_m();
+	                } else {
+	                    LoginService.enterloginform($state.current.name, $state.current.name);
+	                }
+	            });
+	        };
 
 	        vm.previewlist_m = function () {
 	            var sscope = vm.results;
-	            GetResultsFactory.getNeedSubscription()
-	           .then(function (data) {
-	               console.log('showcounters needsubscription=' + data.needsubscription);
-	               console.log('showcounters  _leftcount=' + sscope._leftcount);
+	            GetResultsFactory.getNeedSubscription().then(function (data) {
+	                console.log('showcounters needsubscription=' + data.needsubscription);
+	                console.log('showcounters  _leftcount=' + sscope._leftcount);
 
-	//               if (sscope._leftcount != 0)
-	               if (sscope._leftcount > 0)
-	               {
-	                   console.log('call previewlist');
-	                   vm.previewlist();
-	                   return;
-	               }
-	               if (!sscope._demo) {
-	                   vm.previewlist();
-	                   return;
-	               }
+	                //               if (sscope._leftcount != 0)
+	                if (sscope._leftcount > 0) {
+	                    console.log('call previewlist');
+	                    vm.previewlist();
+	                    return;
+	                }
+	                if (!sscope._demo) {
+	                    vm.previewlist();
+	                    return;
+	                }
 
-	               if (sscope.createSubscr)
-	               {
-	                   ToolsService.ActivateDialog('Cancel');
-	               }
-	               else
-	               {
-	                   ToolsService.MoreLeadsDialog();
-	               }
-
-	           });
+	                if (sscope.createSubscr) {
+	                    ToolsService.ActivateDialog('Cancel');
+	                } else {
+	                    ToolsService.MoreLeadsDialog();
+	                }
+	            });
 	        };
 
-
-
-
-	        vm.preStep_m0 = function (destFunc)
-	        {
-	            LoginService.getuserinfo()
-	            .then(
-	                    function (data) {
-	                        if (data.islogged)  {  vm.preStep_m(destFunc); }
-	                        else {
-	                            LoginService.enterloginform($state.current.name, $state.current.name);
-	                        }
-	                    }
-	                );
-	        }
-
-
+	        vm.preStep_m0 = function (destFunc) {
+	            LoginService.getuserinfo().then(function (data) {
+	                if (data.islogged) {
+	                    vm.preStep_m(destFunc);
+	                } else {
+	                    LoginService.enterloginform($state.current.name, $state.current.name);
+	                }
+	            });
+	        };
 
 	        vm.preStep_m = function (destFunc) {
 	            var sscope = vm.results;
-	            GetResultsFactory.getNeedSubscription()
-	           .then(function (data) {
-	               console.log('showcounters needsubscription=' + data.needsubscription);
-	               console.log('showcounters  _leftcount=' + sscope._leftcount);
+	            GetResultsFactory.getNeedSubscription().then(function (data) {
+	                console.log('showcounters needsubscription=' + data.needsubscription);
+	                console.log('showcounters  _leftcount=' + sscope._leftcount);
 
-	               //               if (sscope._leftcount != 0)
-	               if (sscope._leftcount > 0) {
-	                   console.log('call previewlist');
-	                   //                   vm.previewlist();
-	                   vm.preStep(destFunc);
-	                   return;
-	               }
-	               if (!sscope._demo) {
-	//                   vm.previewlist();
-	                   vm.preStep(destFunc);
-	                   return;
-	               }
-
-	               if (sscope.createSubscr) {
-	                   ToolsService.ActivateDialog('Cancel');
-	               }
-	               else {
-	                   ToolsService.MoreLeadsDialog();
-	               }
-
-	           });
-	        };
-
-	        vm.preStep = function (doFunc)
-	        {
-	            $q.when(vm.results.isLoaded2 ? 1 : vm.refresh_counters())
-	                .then(
-	                function () {
-	                    var _cnt = parseInt(vm.results._count);
-	                    var _left = parseInt(vm.results._leftcount);
-
-	                    if (isNaN(_cnt)) _cnt = 0;
-	                    if (isNaN(_left)) _left = 0;
-
-	                    vm.choices._count_Data = (_left == 0) ? _cnt : Math.min(_cnt, _left);
-	                    vm.view_list_title = vm.results.isLoaded && vm.results.islogged && (!vm.results.createSubscr) ? 'View List' : 'Preview List';
-	                    vm.view_list_title = "Send E-mail";
-
-	                    if (vm.results.createSubscr)
-	                    { $state.go('previewdata'); }
-	                    else
-	                    {
-	                        ToolsService.ChangePreviewData(vm.view_list_title,doFunc);
-	                    }
-
+	                //               if (sscope._leftcount != 0)
+	                if (sscope._leftcount > 0) {
+	                    console.log('call previewlist');
+	                    //                   vm.previewlist();
+	                    vm.preStep(destFunc);
+	                    return;
+	                }
+	                if (!sscope._demo) {
+	                    //                   vm.previewlist();
+	                    vm.preStep(destFunc);
+	                    return;
 	                }
 
-	                );
-
-
-
+	                if (sscope.createSubscr) {
+	                    ToolsService.ActivateDialog('Cancel');
+	                } else {
+	                    ToolsService.MoreLeadsDialog();
+	                }
+	            });
 	        };
 
-	        vm.askAboutPopup = function () { if (!vm.mobile) ToolsService.AskAboutPopup(); };
+	        vm.preStep = function (doFunc) {
+	            $q.when(vm.results.isLoaded2 ? 1 : vm.refresh_counters()).then(function () {
+	                var _cnt = parseInt(vm.results._count);
+	                var _left = parseInt(vm.results._leftcount);
 
+	                if (isNaN(_cnt)) _cnt = 0;
+	                if (isNaN(_left)) _left = 0;
+
+	                vm.choices._count_Data = _left == 0 ? _cnt : Math.min(_cnt, _left);
+	                vm.view_list_title = vm.results.isLoaded && vm.results.islogged && !vm.results.createSubscr ? 'View List' : 'Preview List';
+	                vm.view_list_title = "Send E-mail";
+
+	                if (vm.results.createSubscr) {
+	                    $state.go('previewdata');
+	                } else {
+	                    ToolsService.ChangePreviewData(vm.view_list_title, doFunc);
+	                }
+	            });
+	        };
+
+	        vm.askAboutPopup = function () {
+	            if (!vm.mobile) ToolsService.AskAboutPopup();
+	        };
 
 	        activate();
 
@@ -50768,20 +49695,19 @@ webpackJsonp([0],[
 
 	        function activate() {
 
-	                var device = {};
-	                device.Html5 = false;
-	                device.UA = navigator.userAgent;
-	                device.Types = ["iPhone", "iPad", "iPod", "Chrome"];
-	                for (var d = 0; d < device.Types.length; d++) {
-	                    var t = device.Types[d];
-	                    device[t] = !!device.UA.match(new RegExp(t, "i"));
-	                    device.Html5 = device.Html5 || device[t];
-	                }
+	            var device = {};
+	            device.Html5 = false;
+	            device.UA = navigator.userAgent;
+	            device.Types = ["iPhone", "iPad", "iPod", "Chrome"];
+	            for (var d = 0; d < device.Types.length; d++) {
+	                var t = device.Types[d];
+	                device[t] = !!device.UA.match(new RegExp(t, "i"));
+	                device.Html5 = device.Html5 || device[t];
+	            }
 
-	                vm.html5 = device.Html5;
+	            vm.html5 = device.Html5;
 
-	                $scope.$watch(vm.check_enablelist);
-
+	            $scope.$watch(vm.check_enablelist);
 
 	            $scope.$watch("vm.choices.states", function (new_, old_) {
 	                if (!_frst) {
@@ -50793,15 +49719,15 @@ webpackJsonp([0],[
 	                _frst = false;
 	            });
 
-
-
 	            vm.getdraftzip = function (_val) {
-	                if (_val != '') { vm._lastzip = _val; };
-	                var _rez = (!/^\d{5}(-\d{5})?$/.test(vm._lastzip));
-	                if (!_rez && (_val == '')) { vm.choices.zipcodes.push(vm._lastzip); vm.choices.zipcodes = _.uniq(vm.choices.zipcodes); }
-
+	                if (_val != '') {
+	                    vm._lastzip = _val;
+	                };
+	                var _rez = !/^\d{5}(-\d{5})?$/.test(vm._lastzip);
+	                if (!_rez && _val == '') {
+	                    vm.choices.zipcodes.push(vm._lastzip);vm.choices.zipcodes = _.uniq(vm.choices.zipcodes);
+	                }
 	            };
-
 
 	            //            $scope.$watch("vm.choices.bustype", function (new_, old_) { vm.set2start(); });
 
@@ -50815,7 +49741,7 @@ webpackJsonp([0],[
 	                            if (_arr.length == 2) {
 	                                var _istart = parseInt(_arr[0]);
 	                                var _iend = parseInt(_arr[1]);
-	                                _rez = (_istart > _iend);
+	                                _rez = _istart > _iend;
 	                            }
 	                        }
 
@@ -50824,8 +49750,6 @@ webpackJsonp([0],[
 	                        }
 
 	                        return _rez;
-
-
 	                    });
 	                }, 0);
 	            });
@@ -50840,7 +49764,7 @@ webpackJsonp([0],[
 	                            if (_arr.length == 2) {
 	                                var _istart = parseInt(_arr[0]);
 	                                var _iend = parseInt(_arr[1]);
-	                                _rez = (_istart > _iend);
+	                                _rez = _istart > _iend;
 	                            }
 	                        }
 
@@ -50849,8 +49773,6 @@ webpackJsonp([0],[
 	                        }
 
 	                        return _rez;
-
-
 	                    });
 	                }, 0);
 	            });
@@ -50867,23 +49789,12 @@ webpackJsonp([0],[
 	             */
 
 	            vm.refresh_counters();
-
-
 	        }
-
-
-
-
 	    }
 	    _SearchController.$inject = ["$q", "$http", "$scope", "$state", "$localStorage", "$timeout", "_", "createDialog", "toaster", "FFD_CONST", "InfoFactory", "ChoicesFactory", "GetResultsFactory", "LoginService", "ToolsService"];;
 
-
-
 	    return _SearchController;
-
-
-
-	}
+	};
 
 /***/ },
 /* 76 */
@@ -50909,14 +49820,12 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 	    __webpack_require__(80)(app);
 	    __webpack_require__(82)(app);
 	    __webpack_require__(84)(app);
 	    __webpack_require__(86)(app);
-	}
-
+	};
 
 /***/ },
 /* 80 */
@@ -50924,14 +49833,12 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    app.directive('searchItemStates', _directive);
 
 	    function _directive() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
 	            template: __webpack_require__(81)
@@ -50939,9 +49846,7 @@ webpackJsonp([0],[
 
 	        return _res;
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 81 */
@@ -50955,14 +49860,12 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    app.directive('searchItemCities', _directive);
 
 	    function _directive() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
 	            template: __webpack_require__(83)
@@ -50970,9 +49873,7 @@ webpackJsonp([0],[
 
 	        return _res;
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 83 */
@@ -50986,14 +49887,12 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    app.directive('searchItemDateRange', _directive);
 
 	    function _directive() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
 	            template: __webpack_require__(85)
@@ -51001,9 +49900,7 @@ webpackJsonp([0],[
 
 	        return _res;
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 85 */
@@ -51017,14 +49914,12 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    app.directive('searchItemSelectBusiness', _directive);
 
 	    function _directive() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
 	            template: __webpack_require__(87)
@@ -51032,9 +49927,7 @@ webpackJsonp([0],[
 
 	        return _res;
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 87 */
@@ -51048,76 +49941,62 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    app.directive('ngConfirmClick', _confirmclick3);
 
 	    /* @ngInject */
-	    function _confirmclick()
-	    {
+	    function _confirmclick() {
 	        return {
 	            restrict: 'A',
-	            link: function(scope, element, attrs) {
-	                element.bind('click', function() {
+	            link: function link(scope, element, attrs) {
+	                element.bind('click', function () {
 	                    var condition = scope.$eval(attrs.ngConfirmCondition);
-	                    if(condition){
+	                    if (condition) {
 	                        var message = attrs.ngConfirmMessage;
 	                        if (message && confirm(message)) {
 	                            scope.$apply(attrs.ngConfirmClick);
 	                        }
-	                    }
-	                    else{
+	                    } else {
 	                        scope.$apply(attrs.ngConfirmClick);
-	                    }
-	                });
-	            }
-	        }
-	    }
-
-
-
-
-	    /* @ngInject */
-	    function _confirmclick2()
-	    {
-	        return {
-	            link: function (scope, element, attr) {
-	                var msg = attr.ngConfirmClick || "Are you sure?";
-	                var clickAction = attr.confirmedClick;
-	                element.bind('click',function (event) {
-	                    if ( window.confirm(msg) ) {
-	                        scope.$eval(clickAction)
 	                    }
 	                });
 	            }
 	        };
 	    }
 
-
-
+	    /* @ngInject */
+	    function _confirmclick2() {
+	        return {
+	            link: function link(scope, element, attr) {
+	                var msg = attr.ngConfirmClick || "Are you sure?";
+	                var clickAction = attr.confirmedClick;
+	                element.bind('click', function (event) {
+	                    if (window.confirm(msg)) {
+	                        scope.$eval(clickAction);
+	                    }
+	                });
+	            }
+	        };
+	    }
 
 	    /* @ngInject */
-	    function _confirmclick3()
-	    {
+	    function _confirmclick3() {
 	        return {
 	            priority: -1,
 	            restrict: 'A',
-	            link: function(scope, element, attrs){
-	                element.bind('click', function(e){
+	            link: function link(scope, element, attrs) {
+	                element.bind('click', function (e) {
 	                    var message = attrs.ngConfirmClick;
-	                    if(message && !confirm(message)){
+	                    if (message && !confirm(message)) {
 	                        e.stopImmediatePropagation();
 	                        e.preventDefault();
 	                    }
 	                });
 	            }
-	        }
+	        };
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 89 */
@@ -51125,8 +50004,7 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 	    __webpack_require__(90)(app);
 	    __webpack_require__(94)(app);
 	    __webpack_require__(97)(app);
@@ -51146,9 +50024,7 @@ webpackJsonp([0],[
 	    __webpack_require__(233)(app);
 
 	    __webpack_require__(273)(app);
-
-	}
-
+	};
 
 /***/ },
 /* 90 */
@@ -51156,34 +50032,24 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
-
+	module.exports = function (app) {
 
 	    /* @ngInject */
 	    function configRoutes($stateProvider) {
 	        var _views = {};
 
-	        _views =
-	            {
-	                '': { template: __webpack_require__(91) }
-	                , 'header@root': { template: __webpack_require__(92) }
-	                , 'footer@root': { template: __webpack_require__(93) }
-	            };
-
+	        _views = {
+	            '': { template: __webpack_require__(91) },
+	            'header@root': { template: __webpack_require__(92) },
+	            'footer@root': { template: __webpack_require__(93) }
+	        };
 
 	        $stateProvider.state('root', { abstract: true, url: '', views: _views });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 91 */
@@ -51209,26 +50075,18 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
 	        _views = { 'content@root': { template: __webpack_require__(95), controller: __webpack_require__(96)(app), controllerAs: 'vm' } };
 	        $stateProvider.state('home', { parent: 'root', url: '', views: _views, params: { scrollto: null } });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 95 */
@@ -51242,35 +50100,30 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 	    /* @ngInject */
-	    function _Home_Controller($scope, $timeout, $state, $http, $filter, $sessionStorage, $uiViewScroll, $stateParams, LoginService, toaster)
-	    {
+	    function _Home_Controller($scope, $timeout, $state, $http, $filter, $sessionStorage, $uiViewScroll, $stateParams, LoginService, toaster) {
 	        var vm = this;
 	        vm.breakpoint = {};
 	        vm.mobile = false;
-	        $scope.$watch('vm.breakpoint.xs || vm.breakpoint.sm', function () { vm.mobile = vm.breakpoint.xs || vm.breakpoint.sm; });
+	        $scope.$watch('vm.breakpoint.xs || vm.breakpoint.sm', function () {
+	            vm.mobile = vm.breakpoint.xs || vm.breakpoint.sm;
+	        });
 
 	        //        vm.breakpoint = $rootScope.breakpoint;
 
 	        var _sto = $stateParams.scrollto;
 
-	        if ($stateParams.scrollto)
-	        {
+	        if ($stateParams.scrollto) {
 	            var _ell = angular.element($stateParams.scrollto);
 	            $uiViewScroll(_ell);
-	//            $timeout(function () { $uiViewScroll(_ell); }, 1000);
+	            //            $timeout(function () { $uiViewScroll(_ell); }, 1000);
 	        }
-
-
 	    }
 	    _Home_Controller.$inject = ["$scope", "$timeout", "$state", "$http", "$filter", "$sessionStorage", "$uiViewScroll", "$stateParams", "LoginService", "toaster"];;
 
 	    return _Home_Controller;
-
-	}
+	};
 
 /***/ },
 /* 97 */
@@ -51278,28 +50131,21 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    __webpack_require__(98);
 
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 
 	        var _views = {};
 	        _views = { 'content@root': { template: __webpack_require__(100) } };
 	        $stateProvider.state('about', { parent: 'root', url: 'about', views: _views });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 98 */
@@ -51320,13 +50166,10 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
 	        _views = { 'content@root': { template: __webpack_require__(102) /* , controller: require('./AdminController.js')(app), controllerAs: 'vm' */ } };
 	        $stateProvider.state('admin', { parent: 'root', url: 'admin', views: _views });
@@ -51336,13 +50179,7 @@ webpackJsonp([0],[
 	    app.config(configRoutes);
 	    __webpack_require__(103)(app);
 	    __webpack_require__(106)(app);
-
-
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 102 */
@@ -51356,28 +50193,17 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
-	 
+	    function configRoutes($stateProvider) {
 
 	        $stateProvider.state('admin.historypasswords', { url: '/historypasswords', template: __webpack_require__(104), controller: __webpack_require__(105)(app), controllerAs: 'vm', authenticate: true });
-
-
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 104 */
@@ -51391,21 +50217,18 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	//    app.controller('ChangePasswordController', ChangePasswordController);
+	    //    app.controller('ChangePasswordController', ChangePasswordController);
 
-	//    ChangePasswordController.$inject = ['$scope', '$state', 'toaster', 'LoginService'];
+	    //    ChangePasswordController.$inject = ['$scope', '$state', 'toaster', 'LoginService'];
 
-	    function ChangePasswordController($http,$scope, $state, toaster, FFD_CONST, LoginService)
-	    {
+	    function ChangePasswordController($http, $scope, $state, toaster, FFD_CONST, LoginService) {
 
 	        var vm = this;
 	        vm.history = [];
-
 
 	        var request = $http({
 	            method: "post",
@@ -51413,22 +50236,14 @@ webpackJsonp([0],[
 	            data: {}
 	        });
 
-
-
-	        request
-	        .success(function (data, status, headers, config) {
+	        request.success(function (data, status, headers, config) {
 	            vm.history = data.d;
 	        });
-
-
-
 	    }
 	    ChangePasswordController.$inject = ["$http", "$scope", "$state", "toaster", "FFD_CONST", "LoginService"];
 
-
 	    return ChangePasswordController;
-
-	}
+	};
 
 /***/ },
 /* 106 */
@@ -51436,7 +50251,7 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	 __webpack_require__(107);
+	__webpack_require__(107);
 
 	module.exports = function (app) {
 
@@ -51444,24 +50259,18 @@ webpackJsonp([0],[
 	    __webpack_require__(111)(app);
 
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
-	        $stateProvider.state('admin.allusers',
-	            {
-	                url: '/allusers',
-	                template: __webpack_require__(121),
-	                controller: __webpack_require__(122)(app),
-	                controllerAs: 'vm', authenticate: true
-	            });
+	    function configRoutes($stateProvider) {
+	        $stateProvider.state('admin.allusers', {
+	            url: '/allusers',
+	            template: __webpack_require__(121),
+	            controller: __webpack_require__(122)(app),
+	            controllerAs: 'vm', authenticate: true
+	        });
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 107 */
@@ -51476,16 +50285,12 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 
 	    app.directive('userDetailInfo', _userDetailInfo);
 
-	    function _userDetailInfo()
-	    {
-	        var _res =
-	        {
+	    function _userDetailInfo() {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(110)
@@ -51493,9 +50298,7 @@ webpackJsonp([0],[
 
 	        return _res;
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 110 */
@@ -51509,9 +50312,7 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 
 	    app.directive('userActivityInformation', _userActivityInformation);
 	    app.directive('userSubscriptionInformation', _userSubscriptionInformation);
@@ -51527,10 +50328,8 @@ webpackJsonp([0],[
 
 	    app.directive('userSortInfoPanel', _userSortInfoPanel);
 
-	    function _userDetailInfoNew()
-	    {
-	        var _res =
-	        {
+	    function _userDetailInfoNew() {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(112)
@@ -51539,10 +50338,8 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
 	    function _userActivityInformation() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(113)
@@ -51551,10 +50348,8 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
 	    function _userSubscriptionInformation() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(114)
@@ -51563,12 +50358,8 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
-
-
 	    function _userInformation() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(115)
@@ -51577,11 +50368,8 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
-
 	    function _userHistoryBlock() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(116)
@@ -51590,10 +50378,8 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
 	    function _userActionsBlock() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(117)
@@ -51602,10 +50388,8 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
 	    function _userFilterInfoPanel() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(118)
@@ -51614,10 +50398,8 @@ webpackJsonp([0],[
 	        return _res;
 	    }
 
-
 	    function _userFilterFormPanel() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(119)
@@ -51627,8 +50409,7 @@ webpackJsonp([0],[
 	    }
 
 	    function _userSortInfoPanel() {
-	        var _res =
-	        {
+	        var _res = {
 	            restrict: 'E',
 	            replace: 'true',
 	            template: __webpack_require__(120)
@@ -51636,9 +50417,7 @@ webpackJsonp([0],[
 
 	        return _res;
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 112 */
@@ -51706,151 +50485,118 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function _AllUsersController(
-	        $scope, $q, $timeout,
+	    function _AllUsersController($scope, $q, $timeout,
 
-	//         $sessionStorage,  $http, 
+	    //         $sessionStorage,  $http, 
 
-	        $localStorage,
-	        $state,
-	        $location,
-	        $http,
-	        _,
-	        FFD_CONST, toaster,
-
-	        uiGridConstants,
-	        uiGridExporterConstants,
-	        uiGridPaginationService,
-	        LoginService,
-	//        InfoFactory,
-	//        ChoicesFactory,
-	//          GetResultsFactory,
-	          AdminDataService,
-	          ToolsService
-	        )
-	    {
+	    $localStorage, $state, $location, $http, _, FFD_CONST, toaster, uiGridConstants, uiGridExporterConstants, uiGridPaginationService, LoginService,
+	    //        InfoFactory,
+	    //        ChoicesFactory,
+	    //          GetResultsFactory,
+	    AdminDataService, ToolsService) {
 
 	        var _filters_default = {
-	                            username: '',
-	                            email: '',
-	                            city: '',
-	                            address: '',
+	            username: '',
+	            email: '',
+	            city: '',
+	            address: '',
 
-	                            firstname: '',
-	                            lastname:'',
+	            firstname: '',
+	            lastname: '',
 
-	                            haspassword: false,
-	                            isadmin: false,
-	                            issuperadmin: false,
-	                            status: 'all',
-	                            subscr_status: 'all',
-	                            payment: 'all',
+	            haspassword: false,
+	            isadmin: false,
+	            issuperadmin: false,
+	            status: 'all',
+	            subscr_status: 'all',
+	            payment: 'all',
 
-	                            date_la_start_: undefined,
-	                            date_la_end_: undefined,
-	                            date_la_start: '',
-	                            date_la_end: '',
+	            date_la_start_: undefined,
+	            date_la_end_: undefined,
+	            date_la_start: '',
+	            date_la_end: '',
 
-	                            date_reg_start_: undefined,
-	                            date_reg_end_: undefined,
-	                            date_reg_start: '',
-	                            date_reg_end: '',
+	            date_reg_start_: undefined,
+	            date_reg_end_: undefined,
+	            date_reg_start: '',
+	            date_reg_end: '',
 
-	                            date_subcre_start_: undefined,
-	                            date_subcre_end_: undefined,
-	                            date_subcre_start: '',
-	                            date_subcre_end: '',
+	            date_subcre_start_: undefined,
+	            date_subcre_end_: undefined,
+	            date_subcre_start: '',
+	            date_subcre_end: '',
 
-	                            date_subend_start_: undefined,
-	                            date_subend_end_: undefined,
-	                            date_subend_start: '',
-	                            date_subend_end: '',
+	            date_subend_start_: undefined,
+	            date_subend_end_: undefined,
+	            date_subend_start: '',
+	            date_subend_end: '',
 
+	            date_subrealend_start_: undefined,
+	            date_subrealend_end_: undefined,
+	            date_subrealend_start: '',
+	            date_subrealend_end: ''
 
-	                            date_subrealend_start_: undefined,
-	                            date_subrealend_end_: undefined,
-	                            date_subrealend_start: '',
-	                            date_subrealend_end: ''
+	        };
 
-
-
-
-	                        };
-
-
-
-
-	        var _username='';
+	        var _username = '';
 	        var vm = this;
 	        var _restore_name = "AllUsers_Restore_Params";
 	        var _restore_name_columns = "AllUsers_Restore_Columns";
 
-
 	        /*
-
-	        vm.phistory = [];
-
-
-	        var request = $http({
+	          vm.phistory = [];
+	            var request = $http({
 	            method: "post",
 	            url: FFD_CONST.API_BASE_URL + "GetPasswordsHistory",
 	            data: {}
 	        });
-
-
-
-	        request
+	              request
 	        .success(function (data, status, headers, config) {
 	            vm.phistory = data.d;
 	        });
+	          */
 
-	        */
-
-	        vm.getabsurl=function(_url)
-	        {
+	        vm.getabsurl = function (_url) {
 	            var _start = $location.protocol() + '://' + $location.host() + ':' + $location.port();
 	            return _start + _url;
-	        }
-
+	        };
 
 	        vm.excel_url = "";
 
 	        vm.LoadingActive = false;
 
 	        $scope.$on('cfpLoadingBar:started', function (event, data) {
-	            $timeout(function () { vm.LoadingActive = screenfull && screenfull.isFullscreen; });
+	            $timeout(function () {
+	                vm.LoadingActive = screenfull && screenfull.isFullscreen;
+	            });
 	            console.log('cfpLoadingBar:started');
 	        });
 
 	        $scope.$on('cfpLoadingBar:completed', function (event, data) {
-	            $timeout(function () { vm.LoadingActive = false; });
+	            $timeout(function () {
+	                vm.LoadingActive = false;
+	            });
 	            console.log('cfpLoadingBar:completed');
 	        });
-
-
 
 	        vm.show_filters = false;
 	        vm.show_details = false;
 	        vm.filters = angular.merge({}, _filters_default, { subscr_status: 'active' });
 
+	        function raw_date_2_str(raw_) {
+	            return raw_ == undefined ? '' : moment(raw_).format('MM/DD/YYYY');
+	        }
 
-	        function raw_date_2_str(raw_) { return (raw_ == undefined) ? '' : moment(raw_).format('MM/DD/YYYY'); }
-
-
-	        $scope.$watch('vm.filters.date_la_start_', function ()
-	        {
+	        $scope.$watch('vm.filters.date_la_start_', function () {
 	            vm.filters.date_la_start = raw_date_2_str(vm.filters.date_la_start_);
 	        });
 
 	        $scope.$watch('vm.filters.date_la_end_', function () {
 	            vm.filters.date_la_end = raw_date_2_str(vm.filters.date_la_end_);
 	        });
-
-
 
 	        $scope.$watch('vm.filters.date_reg_start_', function () {
 	            vm.filters.date_reg_start = raw_date_2_str(vm.filters.date_reg_start_);
@@ -51860,8 +50606,6 @@ webpackJsonp([0],[
 	            vm.filters.date_reg_end = raw_date_2_str(vm.filters.date_reg_end_);
 	        });
 
-
-
 	        $scope.$watch('vm.filters.date_subcre_start_', function () {
 	            vm.filters.date_subcre_start = raw_date_2_str(vm.filters.date_subcre_start_);
 	        });
@@ -51869,9 +50613,6 @@ webpackJsonp([0],[
 	        $scope.$watch('vm.filters.date_subcre_end_', function () {
 	            vm.filters.date_subcre_end = raw_date_2_str(vm.filters.date_subcre_end_);
 	        });
-
-
-
 
 	        $scope.$watch('vm.filters.date_subend_start_', function () {
 	            vm.filters.date_subend_start = raw_date_2_str(vm.filters.date_subend_start_);
@@ -51881,11 +50622,6 @@ webpackJsonp([0],[
 	            vm.filters.date_subend_end = raw_date_2_str(vm.filters.date_subend_end_);
 	        });
 
-
-
-
-
-
 	        $scope.$watch('vm.filters.date_subrealend_start_', function () {
 	            vm.filters.date_subrealend_start = raw_date_2_str(vm.filters.date_subrealend_start_);
 	        });
@@ -51894,31 +50630,19 @@ webpackJsonp([0],[
 	            vm.filters.date_subrealend_end = raw_date_2_str(vm.filters.date_subrealend_end_);
 	        });
 
-
-
-
-
-
-
-
-	/*        $scope.$watch('vm.crnt_row.UserId', function () {
-
-	            vm.crnt_row.leftcount = "";
-	            AdminDataService.getUserInfo4Id(vm.crnt_row.UserId)
-	            .then(function (_data) { vm.crnt_row.leftcount = _data.leftCount });
-
-
-
-	        });
-	*/
-
-
+	        /*        $scope.$watch('vm.crnt_row.UserId', function () {
+	        
+	                    vm.crnt_row.leftcount = "";
+	                    AdminDataService.getUserInfo4Id(vm.crnt_row.UserId)
+	                    .then(function (_data) { vm.crnt_row.leftcount = _data.leftCount });
+	        
+	        
+	        
+	                });
+	        */
 
 	        vm.crnt_row = {};
 	        vm.phist = { password: '', password_prev: '' };
-
-
-
 
 	        vm.gridOptions = {};
 
@@ -51926,16 +50650,14 @@ webpackJsonp([0],[
 	        vm.gridOptions.exporterMenuPdf = false;
 
 	        vm.gridOptions.exporterCsvFilename = 'users.csv';
-	//        vm.gridOptions.exporterCsvLinkElement = angular.element(document.querySelectorAll(".custom-csv-link-location"));
-	        vm.gridOptions.exporterAllDataFn = function ()
-	        {
-	//            alert('ALL');
-	            return vm.getPage(1, vm.gridOptions.totalItems, false).then(function () { });
+	        //        vm.gridOptions.exporterCsvLinkElement = angular.element(document.querySelectorAll(".custom-csv-link-location"));
+	        vm.gridOptions.exporterAllDataFn = function () {
+	            //            alert('ALL');
+	            return vm.getPage(1, vm.gridOptions.totalItems, false).then(function () {});
 	        };
 
-
 	        vm.gridOptions.appScopeProvider = vm;
-	        vm.gridOptions.useExternalSorting=true;
+	        vm.gridOptions.useExternalSorting = true;
 	        vm.gridOptions.enablePinning = true;
 
 	        //        vm.gridOptions.data = '_records';
@@ -51945,199 +50667,134 @@ webpackJsonp([0],[
 
 	        vm.gridOptions.enableGridMenu = true;
 	        vm.gridOptions.showGridFooter = false;
-	//        vm.gridOptions.fastWatch = true;
+	        //        vm.gridOptions.fastWatch = true;
 
 	        vm.gridOptions.showColumnFooter = false;
 	        vm.gridOptions.showFooter = false;
 	        vm.gridOptions.enablePaginationControls = true;
 
-
-
-	        vm.gridOptions.paginationPageSizes = [10,25,50, 100, 200];
+	        vm.gridOptions.paginationPageSizes = [10, 25, 50, 100, 200];
 	        vm.gridOptions.paginationPageSize = 25; // 200;
 	        vm.gridOptions.useExternalPagination = true;
-
-
-
 
 	        var boolColTemplate = '<div class="text-xs-center">{{COL_FIELD == true  ? "+" : ""}}</div>';
 
 	        boolColTemplate = __webpack_require__(123);
 
-	        vm._columnDefs =
-	            [
-	                
-	               {
-	                    name: 'xxx',
-	                    displayName: ' '
-	                    , cellTemplate: __webpack_require__(124)
-	                    , width: 40
-	                   , enableFiltering: false
-	                   , enableHiding: false
-	                   ,enableSorting: false
-	                    , pinnedLeft: true
-	//                    , enablePinning: true
-	//                   , pinnable: true
-	               },
-	                {
-	                    name: 'UserName', displayName: 'Login', visible: true, width: 150,
-	                    enableFiltering: true
-	                    //,enableSorting: false
-	                    //                    , cellTemplate: require('./details.tpl.html')
-	                    , pinnedLeft: true
-	                    //                    , enablePinning: true
-	                    //                   , pinnable: true
-	                },
+	        vm._columnDefs = [{
+	            name: 'xxx',
+	            displayName: ' ',
+	            cellTemplate: __webpack_require__(124),
+	            width: 40,
+	            enableFiltering: false,
+	            enableHiding: false,
+	            enableSorting: false,
+	            pinnedLeft: true
+	            //                    , enablePinning: true
+	            //                   , pinnable: true
+	        }, {
+	            name: 'UserName', displayName: 'Login', visible: true, width: 150,
+	            enableFiltering: true
+	            //,enableSorting: false
+	            //                    , cellTemplate: require('./details.tpl.html')
+	            , pinnedLeft: true
+	            //                    , enablePinning: true
+	            //                   , pinnable: true
+	        }, { name: 'UserId', displayName: 'User ID', visible: false, width: 150, enableFiltering: false, enableSorting: true },
 
-	               
+	        /*
+	        {
+	            name: 'yyy', displayName: 'Name(1st&last)', visible: true,
+	            width: 250
+	            , cellTemplate: require('./name-column.tpl.html')
+	        },
+	        */
 
-	                { name: 'UserId', displayName: 'User ID', visible: false, width: 150, enableFiltering: false, enableSorting: true },
-
-	                /*
-	                {
-	                    name: 'yyy', displayName: 'Name(1st&last)', visible: true,
-	                    width: 250
-	                    , cellTemplate: require('./name-column.tpl.html')
-	                },
-	                */
-
-
-	                { name: 'FirstName', displayName: 'First Name', visible: true, width: 150 },
-	                { name: 'LastName', displayName: 'Last Name', visible: true, width: 150 },
-
-
-
-	                { name: 'Password', displayName: 'Password', visible: true, width: 150, enableSorting: true },
-
-
-
-	                { name: 'Email', displayName: 'E-mail', visible: true, width: 200, enableFiltering: false, enableSorting: true },
-	                { name: 'CreateDate', displayName: 'Registration Date', visible: true, width: 200 },
-	                { name: 'LastActivityDate', displayName: 'Last Activity', visible: true, width: 150 },
-	                { name: 'SubscrStatus', displayName: 'Subscriber Status', visible: true, width: 150  },
-	                { name: 'SubscrCreate', displayName: 'Subscription Create Date', visible: true, width: 200 },
-	                { name: 'SubscrEnd', displayName: 'Subscription End Date', visible: true, width: 200 },
-	                { name: 'SubscrRealEnd', displayName: 'Subscription Actual End Date', visible: true, width: 200 },
-	                { name: 'SubscrCancel', displayName: 'Subscription Cancel Date', visible: true, width: 200 },
-	                { name: 'SubscrType', displayName: 'Payment Type', visible: true, width: 150 },
-	                { name: 'total_subscr_days', displayName: 'Total Subscription Days', visible: true, width: 150 },
-	                { name: 'net_worth', displayName: 'Net Worth', visible: true, width: 80, cellFilter: 'currencyFilter' },
-
-
-	                { name: 'Address', visible: true, width: 200, enableFiltering: false  /*  , enableSorting: false */ },
-	                { name: 'City', visible: true, width: 100 , enableFiltering: false },
-	                { name: 'State', visible: true, width: 50 , enableFiltering: false },
-	                { name: 'Zip', visible: true, width: 150 },
-	                { name: 'BusinessType', DysplayName: 'Business Type', visible: true, width: 200 }
-
-
-	               , {
-	                   name: 'IsAdmin',
-	                   displayName: 'Admin'
-	                    , cellTemplate: boolColTemplate  // require('./admin-column.tpl.html')
-	                    , width: 100
-	               }
-
-	               , {
-	                   name: 'IsSuperAdmin',
-	                   displayName: 'Super Admin'
-	                    , cellTemplate: boolColTemplate  // require('./admin-column.tpl.html')
-	                    , width: 100
-	               }
-
-	               , {
-	                   name: 'IsActive',
-	                   displayName: 'Active'
-	                    , cellTemplate: boolColTemplate // require('./active-column.tpl.html')
-	                    , width: 100
-	               }
-
-
-
-
-
-	            ];
-
+	        { name: 'FirstName', displayName: 'First Name', visible: true, width: 150 }, { name: 'LastName', displayName: 'Last Name', visible: true, width: 150 }, { name: 'Password', displayName: 'Password', visible: true, width: 150, enableSorting: true }, { name: 'Email', displayName: 'E-mail', visible: true, width: 200, enableFiltering: false, enableSorting: true }, { name: 'CreateDate', displayName: 'Registration Date', visible: true, width: 200 }, { name: 'LastActivityDate', displayName: 'Last Activity', visible: true, width: 150 }, { name: 'SubscrStatus', displayName: 'Subscriber Status', visible: true, width: 150 }, { name: 'SubscrCreate', displayName: 'Subscription Create Date', visible: true, width: 200 }, { name: 'SubscrEnd', displayName: 'Subscription End Date', visible: true, width: 200 }, { name: 'SubscrRealEnd', displayName: 'Subscription Actual End Date', visible: true, width: 200 }, { name: 'SubscrCancel', displayName: 'Subscription Cancel Date', visible: true, width: 200 }, { name: 'SubscrType', displayName: 'Payment Type', visible: true, width: 150 }, { name: 'total_subscr_days', displayName: 'Total Subscription Days', visible: true, width: 150 }, { name: 'net_worth', displayName: 'Net Worth', visible: true, width: 80, cellFilter: 'currencyFilter' }, { name: 'Address', visible: true, width: 200, enableFiltering: false /*  , enableSorting: false */ }, { name: 'City', visible: true, width: 100, enableFiltering: false }, { name: 'State', visible: true, width: 50, enableFiltering: false }, { name: 'Zip', visible: true, width: 150 }, { name: 'BusinessType', DysplayName: 'Business Type', visible: true, width: 200 }, {
+	            name: 'IsAdmin',
+	            displayName: 'Admin',
+	            cellTemplate: boolColTemplate // require('./admin-column.tpl.html')
+	            , width: 100
+	        }, {
+	            name: 'IsSuperAdmin',
+	            displayName: 'Super Admin',
+	            cellTemplate: boolColTemplate // require('./admin-column.tpl.html')
+	            , width: 100
+	        }, {
+	            name: 'IsActive',
+	            displayName: 'Active',
+	            cellTemplate: boolColTemplate // require('./active-column.tpl.html')
+	            , width: 100
+	        }];
 
 	        vm.gridOptions.columnDefs = vm._columnDefs;
 
 	        vm.gridOptions.data = [];
 
-
-	        vm.saveState = function ()
-	        {
+	        vm.saveState = function () {
 	            $localStorage[_restore_name_columns] = vm.gridApi.saveState.save();
 	            console.log('columns state saved');
 	        };
 
-	        vm.restoreState = function ()
-	        {
+	        vm.restoreState = function () {
 	            if (!$localStorage[_restore_name_columns]) return;
 	            vm.gridApi.saveState.restore(vm, $localStorage[_restore_name_columns]);
 	            console.log('columns state restored');
 	        };
 
-
-
-	        vm.rerun = function ($event, _row)
-	        {
+	        vm.rerun = function ($event, _row) {
 	            $event.preventDefault();
 	            console.log(_row);
-	        }
+	        };
 
-
-	        vm.detail = function ($event, _row)
-	        {
+	        vm.detail = function ($event, _row) {
 	            $event.preventDefault();
 	            vm.crnt_row = _row;
 	            vm.show_detail = true;
-	        }
+	        };
 
-
-	        vm.next_user = function ()
-	        {
-	            var _indx = _.findIndex(vm.gridOptions.data, function (_itm) { return _itm.UserId == vm.crnt_row.UserId });
+	        vm.next_user = function () {
+	            var _indx = _.findIndex(vm.gridOptions.data, function (_itm) {
+	                return _itm.UserId == vm.crnt_row.UserId;
+	            });
 	            if (_indx < 0) return;
-	            if (_indx+1<vm.gridOptions.data.length)
-	            {
+	            if (_indx + 1 < vm.gridOptions.data.length) {
 	                vm.crnt_row = vm.gridOptions.data[_indx + 1];
 	                return;
 	            }
-	            if ((vm.gridOptions.paginationCurrentPage + 1) > vm.gridApi.pagination.getTotalPages()) return;
+	            if (vm.gridOptions.paginationCurrentPage + 1 > vm.gridApi.pagination.getTotalPages()) return;
 	            vm.gridOptions.paginationCurrentPage++;
-	            vm.getPage(vm.gridOptions.paginationCurrentPage, vm.gridOptions.paginationPageSize, false)
-	            .then(function () { vm.crnt_row = vm.gridOptions.data[0]; });
-	            
-	        }
-
+	            vm.getPage(vm.gridOptions.paginationCurrentPage, vm.gridOptions.paginationPageSize, false).then(function () {
+	                vm.crnt_row = vm.gridOptions.data[0];
+	            });
+	        };
 
 	        vm.prev_user = function () {
-	            var _indx = _.findIndex(vm.gridOptions.data, function (_itm) { return _itm.UserId == vm.crnt_row.UserId });
+	            var _indx = _.findIndex(vm.gridOptions.data, function (_itm) {
+	                return _itm.UserId == vm.crnt_row.UserId;
+	            });
 	            if (_indx < 0) return;
-	            if (_indx  >0 ) {
+	            if (_indx > 0) {
 	                vm.crnt_row = vm.gridOptions.data[_indx - 1];
 	                return;
 	            }
-	            if (vm.gridOptions.paginationCurrentPage == 1 ) return;
+	            if (vm.gridOptions.paginationCurrentPage == 1) return;
 	            vm.gridOptions.paginationCurrentPage--;
-	            vm.getPage(vm.gridOptions.paginationCurrentPage, vm.gridOptions.paginationPageSize, false)
-	            .then(function () { vm.crnt_row = vm.gridOptions.data[vm.gridOptions.data.length-1]; });
+	            vm.getPage(vm.gridOptions.paginationCurrentPage, vm.gridOptions.paginationPageSize, false).then(function () {
+	                vm.crnt_row = vm.gridOptions.data[vm.gridOptions.data.length - 1];
+	            });
+	        };
 
-	        }
-	       
-	        vm.get_sort = function ()
-	        {
+	        vm.get_sort = function () {
 	            var _sortm = [];
 	            var _v_sortm = [];
 	            if (!$localStorage[_restore_name_columns]) return _sortm;
-	            var _func_item = function (_itm)
-	            {
+	            var _func_item = function _func_item(_itm) {
 	                if (typeof _itm.sort == 'undefined') return;
 	                if (typeof _itm.sort.direction == 'undefined') return;
-	                var _indx=_.findIndex(_sortm, { name: _itm.name });
-	                if (_indx > -1)
-	                {
-	                    _sortm[_indx].sort= _itm.sort;
+	                var _indx = _.findIndex(_sortm, { name: _itm.name });
+	                if (_indx > -1) {
+	                    _sortm[_indx].sort = _itm.sort;
 	                    _sortm[_indx].direction = _itm.sort.direction;
 	                    _sortm[_indx].priority = _itm.sort.priority;
 	                    return;
@@ -52145,14 +50802,12 @@ webpackJsonp([0],[
 	                _sortm.push({ name: _itm.name, sort: _itm.sort, direction: _itm.sort.direction, priority: _itm.sort.priority });
 	            };
 
-	            var _func_item2=function(_itm)
-	            {
+	            var _func_item2 = function _func_item2(_itm) {
 	                var _nitem = { name: _itm.name, direction: _itm.direction, priority: _itm.sort.priority };
 	                var _ditem = _.find(vm._columnDefs, { name: _itm.name });
 	                if (_ditem && _ditem.displayName) _nitem.name = _ditem.displayName;
 	                _v_sortm.push(_nitem);
-	            }
-
+	            };
 
 	            var _columns = $localStorage[_restore_name_columns].columns;
 	            _.forEach(_columns, _func_item);
@@ -52163,13 +50818,11 @@ webpackJsonp([0],[
 
 	            //_.forEach(vm.gridApi.grid.columns, _func_item);
 	            //            _.forEach(vm.gridOptions.columnDefs, _func_item);
-	            console.log(_sortm,_v_sortm);
+	            console.log(_sortm, _v_sortm);
 	            return _sortm;
-	        }
+	        };
 
-
-	        vm.get_filters = function ()
-	        {
+	        vm.get_filters = function () {
 	            var _cond = [];
 
 	            if (vm.filters.username) _cond.push(['username', vm.filters.username]);
@@ -52182,8 +50835,6 @@ webpackJsonp([0],[
 
 	            if (vm.filters.firstname) _cond.push(['firstname', vm.filters.firstname]);
 	            if (vm.filters.lastname) _cond.push(['lastname', vm.filters.lastname]);
-
-
 
 	            if (vm.filters.date_la_start) _cond.push(['date_la_start', vm.filters.date_la_start]);
 	            if (vm.filters.date_la_end) _cond.push(['date_la_end', vm.filters.date_la_end]);
@@ -52205,34 +50856,28 @@ webpackJsonp([0],[
 	            if (vm.filters.subscr_status != 'all') _cond.push(['subscr_status', vm.filters.subscr_status]);
 
 	            return _cond;
-	        }
+	        };
 
-
-
-	        vm.save_state_grid = function ()
-	        {
-	            $localStorage[_restore_name] =
-	            {
+	        vm.save_state_grid = function () {
+	            $localStorage[_restore_name] = {
 	                filters: vm.filters,
-	//                sort: vm.get_sort(),
+	                //                sort: vm.get_sort(),
 	                pagesize: vm.gridOptions.paginationPageSize,
 	                page: vm.gridOptions.paginationCurrentPage,
 	                username: vm.crnt_row.UserName,
 	                isFullScreen: screenfull && screenfull.isFullscreen
 	            };
-	        }
+	        };
 
-	        vm.edit_user=function()
-	        {
+	        vm.edit_user = function () {
 	            vm.save_state_grid();
 	            $state.go("profile.changepersonaldata", { username: vm.crnt_row.UserName, backto: 'admin.allusers' });
-	        }
+	        };
 
 	        vm.delete_user = function () {
 	            vm.save_state_grid();
 
-	            LoginService.deleteuser(vm.crnt_row.UserId)
-	            .then(function (data) {
+	            LoginService.deleteuser(vm.crnt_row.UserId).then(function (data) {
 	                if (data.result == 'ERROR') {
 	                    toaster.pop('error', data.message);
 	                }
@@ -52241,52 +50886,49 @@ webpackJsonp([0],[
 	                    toaster.pop('success', _message);
 	                }
 	                activate();
-
 	            });
-
-	        }
+	        };
 
 	        vm.unsubscribe = function ($event) {
-	            LoginService.unsubscribe(vm.crnt_row.UserId)
-	            .then(function (data) {
-	                if (data.result == "OK") { vm.done = true; }
-	                if (data.result == "ERROR") { toaster.pop('error', data.message); }
+	            LoginService.unsubscribe(vm.crnt_row.UserId).then(function (data) {
+	                if (data.result == "OK") {
+	                    vm.done = true;
+	                }
+	                if (data.result == "ERROR") {
+	                    toaster.pop('error', data.message);
+	                }
 	            });
-
 	        };
 
 	        vm.unsubscribe_wo_email = function ($event) {
-	            LoginService.unsubscribe_wo_email(vm.crnt_row.UserId)
-	            .then(function (data) {
-	                if (data.result == "OK") { vm.done = true; }
-	                if (data.result == "ERROR") { toaster.pop('error', data.message); }
+	            LoginService.unsubscribe_wo_email(vm.crnt_row.UserId).then(function (data) {
+	                if (data.result == "OK") {
+	                    vm.done = true;
+	                }
+	                if (data.result == "ERROR") {
+	                    toaster.pop('error', data.message);
+	                }
 	            });
-
 	        };
 
 	        vm.browse_orders = function () {
 	            vm.save_state_grid();
 
-	//            $state.go("profile.orderhistory", { username: vm.crnt_row.UserName, backto: 'admin.allusers' });
+	            //            $state.go("profile.orderhistory", { username: vm.crnt_row.UserName, backto: 'admin.allusers' });
 	            $state.go("admin.orders", { username: vm.crnt_row.UserName, backto: 'admin.allusers' });
-	            
-	        }
+	        };
 
-	        vm.browse_queries = function ()
-	        {
+	        vm.browse_queries = function () {
 	            vm.save_state_grid();
 
 	            $state.go("admin.queries", { username: vm.crnt_row.UserName, backto: 'admin.allusers' });
-	        }
+	        };
 
-
-	        vm.reset_password = function ()
-	        {
+	        vm.reset_password = function () {
 
 	            vm.save_state_grid();
 
-	            LoginService.resetpassword(vm.crnt_row.UserName)
-	            .then(function (data) {
+	            LoginService.resetpassword(vm.crnt_row.UserName).then(function (data) {
 	                if (data.result == 'ERROR') {
 	                    toaster.pop('error', data.message);
 	                }
@@ -52295,109 +50937,74 @@ webpackJsonp([0],[
 	                    toaster.pop('success', _message);
 	                }
 	                activate();
-
 	            });
+	        };
 
-	        }
-
-	        vm.change_admin = function ()
-	        {
+	        vm.change_admin = function () {
 	            vm.save_state_grid();
 
-
-	            LoginService.switchadminrole(vm.crnt_row.UserId)
-	            .then(function (data) {
+	            LoginService.switchadminrole(vm.crnt_row.UserId).then(function (data) {
 	                if (data.result == 'ERROR') {
 	                    toaster.pop('error', data.message);
 	                }
-	                if (data.result == 'OK')
-	                {
+	                if (data.result == 'OK') {
 	                    activate();
 	                }
-
 	            });
-
-
-	        }
-
-
-
+	        };
 
 	        vm.change_superadmin = function () {
 	            vm.save_state_grid();
 
-
-	            LoginService.switchsuperadminrole(vm.crnt_row.UserId)
-	            .then(function (data) {
+	            LoginService.switchsuperadminrole(vm.crnt_row.UserId).then(function (data) {
 	                if (data.result == 'ERROR') {
 	                    toaster.pop('error', data.message);
 	                }
 	                if (data.result == 'OK') {
 	                    activate();
 	                }
-
 	            });
+	        };
 
-
-	        }
-
-
-
-
-
-	        vm.change_active = function ()
-	        {
+	        vm.change_active = function () {
 	            vm.save_state_grid();
 
-
-	            LoginService.switchactiveuser(vm.crnt_row.UserId)
-	            .then(function (data) {
+	            LoginService.switchactiveuser(vm.crnt_row.UserId).then(function (data) {
 	                if (data.result == 'ERROR') {
 	                    toaster.pop('error', data.message);
 	                }
 	                if (data.result == 'OK') {
 	                    activate();
 	                }
-
 	            });
+	        };
 
-	        }
+	        vm.change_scount = function () {
 
-	        vm.change_scount = function ()
-	        {
-
-
-	            AdminDataService.getUserInfo4Id(vm.crnt_row.UserId)
-	            .then(function (_data)
-	            {
-	                console.log("vm.crnt_row.UserId=", vm.crnt_row.UserId, "_data.leftCount=", _data.leftCount)
-	                AdminDataService.ChangeSubscriptionCount(vm.crnt_row.UserId , _data.leftCount);
+	            AdminDataService.getUserInfo4Id(vm.crnt_row.UserId).then(function (_data) {
+	                console.log("vm.crnt_row.UserId=", vm.crnt_row.UserId, "_data.leftCount=", _data.leftCount);
+	                AdminDataService.ChangeSubscriptionCount(vm.crnt_row.UserId, _data.leftCount);
 	            });
+	        };
 
-	        }
+	        /*
+	                vm.send_exp_email = function ()
+	                {
+	                    var request = $http({
+	                        method: "post",
+	                        url: FFD_CONST.API_BASE_URL + "SendMail_Base_M_Wrap",
+	                        data: {
+	                            _email: vm.crnt_row.Email,
+	                            _subject: "FreshFind Data Subscription",
+	                            _master: "",
+	                            _template: "ExpirationSubscription.html",
+	                            _params: [["FirstName", vm.crnt_row.FirstName], ["LastName", vm.crnt_row.LastName]],
+	                            _isBCC: true
+	                            }
+	                    });
+	        */
 
-
-	/*
-	        vm.send_exp_email = function ()
-	        {
-	            var request = $http({
-	                method: "post",
-	                url: FFD_CONST.API_BASE_URL + "SendMail_Base_M_Wrap",
-	                data: {
-	                    _email: vm.crnt_row.Email,
-	                    _subject: "FreshFind Data Subscription",
-	                    _master: "",
-	                    _template: "ExpirationSubscription.html",
-	                    _params: [["FirstName", vm.crnt_row.FirstName], ["LastName", vm.crnt_row.LastName]],
-	                    _isBCC: true
-	                    }
-	            });
-	*/
-
-
-
-	        vm.send_exp_email = function ()
-	        {
+	        vm.send_exp_email = function () {
 	            var request = $http({
 	                method: "post",
 	                url: FFD_CONST.API_BASE_URL + "Send_Embedded_Mail",
@@ -52405,57 +51012,39 @@ webpackJsonp([0],[
 	                    _email: vm.crnt_row.Email,
 	                    _subject: "",
 	                    _name_report: "ExpirationSubscription",
-	                    _params: [
-	                        ["FirstName", vm.crnt_row.FirstName]
-	                        , ["LastName", vm.crnt_row.LastName]
-	                        , ["ExpirationSubscriptionUrl", "https://www.freshfinddata.com/profile/changecreditcarddata"]
-	                    ],
+	                    _params: [["FirstName", vm.crnt_row.FirstName], ["LastName", vm.crnt_row.LastName], ["ExpirationSubscriptionUrl", "https://www.freshfinddata.com/profile/changecreditcarddata"]],
 	                    _isBCC: true
-	                }
-	                });
-
-
-	            request
-	            .success(function (data, status, headers, config) {
-	                var _resp = data.d;
-	                if (_resp.result=="OK") 
-	                {
-	                    var _msg = "E-mail was sent to " + vm.crnt_row.Email;
-	                    toaster.pop('success', _msg);
-	                }
-	                else
-	                {
-	                    var _msg = (_resp.message) ? _resp.message : "Unknokwn Error";
-	                    toaster.pop('error', data.message);
 	                }
 	            });
 
-
-	        }
-
-
-
-	//        vm.gridOptions.rowIdentity = function (row) { return row.UserId;     };
-	//        vm.gridOptions.getRowIdentity = function (row) { return row.UserId;  };
-
-	        vm.gridOptions.onRegisterApi = function (gridApi)
-	        {
-	            vm.gridApi = gridApi;
-	//            _afterregisterApi();
-	            activate();
-	/*
-	 
-	 */
-
-
+	            request.success(function (data, status, headers, config) {
+	                var _resp = data.d;
+	                if (_resp.result == "OK") {
+	                    var _msg = "E-mail was sent to " + vm.crnt_row.Email;
+	                    toaster.pop('success', _msg);
+	                } else {
+	                    var _msg = _resp.message ? _resp.message : "Unknokwn Error";
+	                    toaster.pop('error', data.message);
+	                }
+	            });
 	        };
 
-	        function _afterregisterApi(gridApi)
-	        {
+	        //        vm.gridOptions.rowIdentity = function (row) { return row.UserId;     };
+	        //        vm.gridOptions.getRowIdentity = function (row) { return row.UserId;  };
+
+	        vm.gridOptions.onRegisterApi = function (gridApi) {
+	            vm.gridApi = gridApi;
+	            //            _afterregisterApi();
+	            activate();
+	            /*
+	             
+	             */
+	        };
+
+	        function _afterregisterApi(gridApi) {
 	            gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
-	                if (vm.getPage)
-	                {
-	                    vm.getPage(newPage, pageSize, false).then(function () { });
+	                if (vm.getPage) {
+	                    vm.getPage(newPage, pageSize, false).then(function () {});
 	                }
 	            });
 	            gridApi.core.on.filterChanged($scope, function () {
@@ -52468,179 +51057,141 @@ webpackJsonp([0],[
 	            gridApi.core.on.sortChanged($scope, function (grid, sortColumns) {
 	                /*
 	                var _cols = _.map(sortColumns, function (_item) { return { name: _item.name, sort: _item.sort.direction }; });
-
-	                console.log("sortColumns>> ", sortColumns);
+	                  console.log("sortColumns>> ", sortColumns);
 	                console.log("_cols >> ", _cols);
 	                */
 	                vm.saveState();
-	                vm.getPage(vm.gridOptions.paginationCurrentPage, vm.gridOptions.paginationPageSize, true)
-	                .then(function () { });
+	                vm.getPage(vm.gridOptions.paginationCurrentPage, vm.gridOptions.paginationPageSize, true).then(function () {});
 	            });
-	            $state.current.onExit = function () { vm.saveState(); };
-	            vm.gridApi.core.on.columnVisibilityChanged($scope,
-	            function (column) { vm.saveState(); });
+	            $state.current.onExit = function () {
+	                vm.saveState();
+	            };
+	            vm.gridApi.core.on.columnVisibilityChanged($scope, function (column) {
+	                vm.saveState();
+	            });
 	        }
 
-	//        ??????????
-	        vm.reset_sorting = function ($event)
-	        {
+	        //        ??????????
+	        vm.reset_sorting = function ($event) {
 	            $event.preventDefault();
 
-	            var _func_item=function(_col)
-	            {
+	            var _func_item = function _func_item(_col) {
 	                delete _col.sort.direction;
 	                delete _col.sort.priority;
-	            }
+	            };
 
 	            _.forEach(vm.gridApi.grid.columns, _func_item);
 
 	            vm.saveState();
-	            vm.getPage(vm.gridOptions.paginationCurrentPage, vm.gridOptions.paginationPageSize, true)
-	            .then(function () { });
-	        }
-
-
-
-	        vm.filters_apply = function ()
-	        {
-	            vm.show_filters = false;
-	            vm.getPage(1, vm.gridOptions.paginationPageSize, true)
-	               .then(function () { });
-
+	            vm.getPage(vm.gridOptions.paginationCurrentPage, vm.gridOptions.paginationPageSize, true).then(function () {});
 	        };
 
-	        vm.filters_clear = function ()
-	        {
+	        vm.filters_apply = function () {
+	            vm.show_filters = false;
+	            vm.getPage(1, vm.gridOptions.paginationPageSize, true).then(function () {});
+	        };
+
+	        vm.filters_clear = function () {
 	            vm.show_filters = false;
 	            vm.filters = angular.merge({}, _filters_default);
-	            vm.getPage(1, vm.gridOptions.paginationPageSize, true)
-	               .then(function () { });
+	            vm.getPage(1, vm.gridOptions.paginationPageSize, true).then(function () {});
 	        };
 
 	        vm.is_refresh = false;
 
-
-	        vm.refresh_0 = function ()
-	        {
-	//            return;
-	//            vm.gridOptions.paginationPageSize = 10;
-	//            vm.is_refresh = true;
-	            $timeout(function ()
-	            {
-	//                vm.gridOptions.paginationPageSize = 200;
-	//                vm.is_refresh = false;
+	        vm.refresh_0 = function () {
+	            //            return;
+	            //            vm.gridOptions.paginationPageSize = 10;
+	            //            vm.is_refresh = true;
+	            $timeout(function () {
+	                //                vm.gridOptions.paginationPageSize = 200;
+	                //                vm.is_refresh = false;
 	                vm.gridApi.grid.refresh();
 	            }, 800);
-	        }
+	        };
 
-
-	        vm.refresh = function ()
-	        {
+	        vm.refresh = function () {
 	            vm.is_refresh = true;
 	            $timeout(function () {
 	                //                _.find(vm.gridOptions.columnDefs, { name: "UserId" }).visible = false;
-	                var _set_visible=function(_item)
-	                {
+	                var _set_visible = function _set_visible(_item) {
 	                    var _dev = _.find(vm._columnDefs, { name: _item.name });
 	                    if (!_dev) return;
 	                    var _visible = _dev.visible ? !!_dev.visible : true;
 	                    _item.visible = _visible;
-	                }
+	                };
 	                _.forEach(vm.gridOptions.columnDefs, _set_visible);
 	                vm.is_refresh = false;
 	                vm.gridApi.grid.refresh();
 	            }, 0);
 	        };
-	        
-	        vm.resetColumns=function()
-	        {
+
+	        vm.resetColumns = function () {
 	            delete $localStorage[_restore_name_columns];
-	/*
-	            vm.gridOptions.saveOrder     = false;
-	            vm.gridOptions.saveVisible = false;
-	            vm.gridOptions.saveWidths = false;
-
+	            /*
+	                        vm.gridOptions.saveOrder     = false;
+	                        vm.gridOptions.saveVisible = false;
+	                        vm.gridOptions.saveWidths = false;
 	            
-	            vm.saveState();
-	            vm.restoreState();
-
-	            vm.gridOptions.saveOrder = true;
-	            vm.gridOptions.saveVisible = true;
-	            vm.gridOptions.saveWidths = true;
-	*/
+	                        
+	                        vm.saveState();
+	                        vm.restoreState();
+	            
+	                        vm.gridOptions.saveOrder = true;
+	                        vm.gridOptions.saveVisible = true;
+	                        vm.gridOptions.saveWidths = true;
+	            */
 	            vm.refresh();
 
-	//            vm.gridOptions.columnDefs = vm._columnDefs;
+	            //            vm.gridOptions.columnDefs = vm._columnDefs;
 	            //            vm.gridApi.core.refresh();
+	        };
 
-	        }
-	        
-	        vm.exportCSV = function ()
-	        {
+	        vm.exportCSV = function () {
 
 	            vm.gridApi.exporter.csvExport(uiGridExporterConstants.ALL, uiGridExporterConstants.ALL);
 
-	            $timeout(
-	                function () {
+	            $timeout(function () {
 
-	                    vm.getPage(vm.gridOptions.paginationCurrentPage, vm.gridOptions.paginationPageSize, false)
-	                    .then(function () { });
+	                vm.getPage(vm.gridOptions.paginationCurrentPage, vm.gridOptions.paginationPageSize, false).then(function () {});
+	            }, 1000);
+	        };
 
-
-	                }
-
-	                , 1000
-
-	                );
-
-
-	        }
-
-	        vm.getPage = function (_page, _size, _init)
-	        {
+	        vm.getPage = function (_page, _size, _init) {
 	            var _cond = vm.get_filters();
 	            var _sort = vm.get_sort();
 
-	            var promise = AdminDataService.getOnePageOfAllUsers(_page, _size, _init, _cond,_sort);
-	            promise.then(
-	            function (data)
-	            {
+	            var promise = AdminDataService.getOnePageOfAllUsers(_page, _size, _init, _cond, _sort);
+	            promise.then(function (data) {
 	                vm.gridOptions.totalItems = data.cntrecords;
 	                vm.gridOptions.data = _.col13dig2date(data.records);
 
-	//                var _len = vm.gridOptions.data.length;
-	//                vm.gridOptions.minRowsToShow = _len + 4;
+	                //                var _len = vm.gridOptions.data.length;
+	                //                vm.gridOptions.minRowsToShow = _len + 4;
 	            });
 
 	            return promise;
 	        };
-	   
 
-	//        vm.gridData = [];
+	        //        vm.gridData = [];
 
 
-	//        activate();
-	        function activate()
-	        {
+	        //        activate();
+	        function activate() {
 	            vm.excel_url = vm.getabsurl('/spa/userlist.ashx');
 
 	            var _page = 1;
 
-	            LoginService.getuserinfo()
-	            .then(function (data)
-	            {
+	            LoginService.getuserinfo().then(function (data) {
 	                vm.userinfo = data;
 	            });
 
-
-	            if ($localStorage[_restore_name])
-	            {
+	            if ($localStorage[_restore_name]) {
 	                var _ls = $localStorage[_restore_name];
 	                vm.filters = angular.merge({}, _ls['filters']);
 	                vm.gridOptions.paginationPageSize = _ls['pagesize'];
 
-	                if (vm.filters.subscr_status == 'registrants')
-	                {
+	                if (vm.filters.subscr_status == 'registrants') {
 	                    vm.gridOptions.paginationPageSize = 25;
 	                }
 
@@ -52649,75 +51200,61 @@ webpackJsonp([0],[
 	                var _fullscreen = _ls["isFullScreen"];
 	                vm.gridOptions.paginationCurrentPage = _page;
 
-	                if (_fullscreen)
-	                {
-	                    $timeout(function () { angular.element('button:contains(Toggle)').click(); }, 1000);
+	                if (_fullscreen) {
+	                    $timeout(function () {
+	                        angular.element('button:contains(Toggle)').click();
+	                    }, 1000);
 	                }
-	/* aggi
-	                var _sort = _ls["sort"];
-	                var  _rest_sort=function(_col)
-	                { 
-	                    var _save_col=_.find(_sort,{name:_col.name}); 
-	                    if (!_save_col) return;
-	                    angular.merge(_col, { sort: _save_col.sort });
-	                };
-
-	                _.forEach(vm.gridOptions.columnDefs, _rest_sort);
-	*/
+	                /* aggi
+	                                var _sort = _ls["sort"];
+	                                var  _rest_sort=function(_col)
+	                                { 
+	                                    var _save_col=_.find(_sort,{name:_col.name}); 
+	                                    if (!_save_col) return;
+	                                    angular.merge(_col, { sort: _save_col.sort });
+	                                };
+	                
+	                                _.forEach(vm.gridOptions.columnDefs, _rest_sort);
+	                */
 
 	                delete $localStorage[_restore_name];
 	            }
 
-	            if ($localStorage[_restore_name_columns])
-	            {
-	                var _columns=$localStorage[_restore_name_columns].columns;
-	                var _rest_sort = function (_col) {
+	            if ($localStorage[_restore_name_columns]) {
+	                var _columns = $localStorage[_restore_name_columns].columns;
+	                var _rest_sort = function _rest_sort(_col) {
 	                    var _save_col = _.find(_columns, { name: _col.name });
 	                    if (!_save_col) return;
 	                    angular.merge(_col, { sort: _save_col.sort });
 	                };
 
-	//                _.forEach(vm.gridOptions.columnDefs, _rest_sort);
+	                //                _.forEach(vm.gridOptions.columnDefs, _rest_sort);
 	                _.forEach(vm.gridApi.grid.columns, _rest_sort);
 	            }
 
+	            //            vm.restoreState();
 
-	//            vm.restoreState();
+	            vm.getPage(_page, vm.gridOptions.paginationPageSize, true).then(function () {
+	                vm.restoreState();
+	                _afterregisterApi(vm.gridApi);
 
-	            vm.getPage(_page, vm.gridOptions.paginationPageSize, true)
-	              .then(function ()
-	              {
-	                  vm.restoreState();
-	                  _afterregisterApi(vm.gridApi);
+	                if (!_username) return;
 
-	                  if (!_username) return;
+	                vm.show_detail = false;
+	                vm.crnt_row = {};
 
-	                  vm.show_detail = false;
-	                  vm.crnt_row = {};
-
-	                  var _row = _.find(vm.gridOptions.data, { UserName: _username });
-	                  if (_row)
-	                  {
-	                      vm.crnt_row = _row;
-	                      vm.show_detail = true;
-	                  }
-
-	              })
-	            ;
-
-
+	                var _row = _.find(vm.gridOptions.data, { UserName: _username });
+	                if (_row) {
+	                    vm.crnt_row = _row;
+	                    vm.show_detail = true;
+	                }
+	            });
 	        }
-
-
-	      
-
 	    }
 	    _AllUsersController.$inject = ["$scope", "$q", "$timeout", "$localStorage", "$state", "$location", "$http", "_", "FFD_CONST", "toaster", "uiGridConstants", "uiGridExporterConstants", "uiGridPaginationService", "LoginService", "AdminDataService", "ToolsService"];
 
-
 	    return _AllUsersController;
-
-	}
+	};
 
 /***/ },
 /* 123 */
@@ -52737,26 +51274,18 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
 	        _views = { 'content@root': { template: __webpack_require__(126), controller: __webpack_require__(127)(app), controllerAs: 'vm' } };
-	        $stateProvider.state('faq', { parent: 'root', url: 'faq', views: _views, params: { scrollto: null} });
-
+	        $stateProvider.state('faq', { parent: 'root', url: 'faq', views: _views, params: { scrollto: null } });
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 126 */
@@ -52770,51 +51299,37 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 	    /* @ngInject */
-	    function _Faq_Controller($scope, $timeout, $uiViewScroll, $stateParams, ToolsService)
-	    {
+	    function _Faq_Controller($scope, $timeout, $uiViewScroll, $stateParams, ToolsService) {
 	        var vm = this;
-	//        vm.sampleurl = require('../../../samples/sample.xlsx');
+	        //        vm.sampleurl = require('../../../samples/sample.xlsx');
 
-	        vm.download_sample = function (_event)
-	        {
+	        vm.download_sample = function (_event) {
 	            _event.preventDefault();
 	            ToolsService.DownloadSample();
 	        };
 
-
-
-
-
-
-
 	        var _sto = $stateParams.scrollto;
 	        var _exp = null;
 
-	//        if (_sto == "#faq-privacy")  _exp="$('div[title*=privacy] a').click()";
-	        if (_sto == "#faq-privacy")  _exp="angular.element('div[title*=privacy] a').click()";
+	        //        if (_sto == "#faq-privacy")  _exp="$('div[title*=privacy] a').click()";
+	        if (_sto == "#faq-privacy") _exp = "angular.element('div[title*=privacy] a').click()";
 
-	        if (_sto)
-	        {
+	        if (_sto) {
 
-	            $timeout(function ()
-	            {
-	//                $uiViewScroll($(_sto))
-	                $uiViewScroll(angular.element(_sto))
-	                .then(function () { if (_sto) eval(_exp);  });
+	            $timeout(function () {
+	                //                $uiViewScroll($(_sto))
+	                $uiViewScroll(angular.element(_sto)).then(function () {
+	                    if (_sto) eval(_exp);
+	                });
 	            }, 1000);
 	        }
-
-
 	    }
 	    _Faq_Controller.$inject = ["$scope", "$timeout", "$uiViewScroll", "$stateParams", "ToolsService"];;
 
 	    return _Faq_Controller;
-
-	}
+	};
 
 /***/ },
 /* 128 */
@@ -52822,30 +51337,21 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
-
 
 	    __webpack_require__(129);
 	    __webpack_require__(131)(app);
 
-
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
 	        _views = { 'content@root': { template: __webpack_require__(137), controller: __webpack_require__(138)(app) } };
 	        $stateProvider.state('tryit', { parent: 'root', url: 'try-it', views: _views, params: { scrollto: null } });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 129 */
@@ -52860,45 +51366,36 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 	    /* @ngInject */
 
-
 	    app.directive('tryItShow', _tryItShow);
 
-
-	    function _tryItShow()
-	    {
-	        var _res =
-	         {
-	             restrict: 'E',
-	             replace: true,
-	             scope:{},
-	             template: __webpack_require__(132),
-	             controller: _TryItShow_Controller,
-	             controllerAs: 'vm'
-	         };
+	    function _tryItShow() {
+	        var _res = {
+	            restrict: 'E',
+	            replace: true,
+	            scope: {},
+	            template: __webpack_require__(132),
+	            controller: _TryItShow_Controller,
+	            controllerAs: 'vm'
+	        };
 
 	        return _res;
 	    }
 
-
 	    /* @ngInject */
-	    function _TryItShow_Controller($uiViewScroll)
-	    {
+	    function _TryItShow_Controller($uiViewScroll) {
 	        var vm = this;
 
-	        vm.trynow = function () { $uiViewScroll(angular.element('.try-now')); };
+	        vm.trynow = function () {
+	            $uiViewScroll(angular.element('.try-now'));
+	        };
 
 	        angular.element('#carousel-tryit').carousel('cycle');
 	    }
 	    _TryItShow_Controller.$inject = ["$uiViewScroll"];;
-
-
-
-
-	}
+	};
 
 /***/ },
 /* 132 */
@@ -52942,12 +51439,10 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 	    /* @ngInject */
 	    function _TryIt_Controller($scope, $timeout, $uiViewScroll, $stateParams, ToolsService) {
 	        var vm = this;
-
 
 	        var _sto = $stateParams.scrollto;
 	        var _exp = null;
@@ -52957,14 +51452,11 @@ webpackJsonp([0],[
 	                $uiViewScroll(angular.element(_sto));
 	            }, 1000);
 	        }
-
-
 	    }
 	    _TryIt_Controller.$inject = ["$scope", "$timeout", "$uiViewScroll", "$stateParams", "ToolsService"];;
 
 	    return _TryIt_Controller;
-
-	}
+	};
 
 /***/ },
 /* 139 */
@@ -52972,26 +51464,18 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
 	        _views = { 'content@root': { template: __webpack_require__(140), controller: __webpack_require__(141)(app), controllerAs: 'vm' } };
-	        $stateProvider.state('contact', { parent: 'root', url: 'contact', views: _views }  );
-
+	        $stateProvider.state('contact', { parent: 'root', url: 'contact', views: _views });
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 140 */
@@ -53005,20 +51489,16 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	    function ContactController($scope, $state, $http, FFD_CONST )
-	    {
+	    function ContactController($scope, $state, $http, FFD_CONST) {
 
 	        $scope.sended = false;
 	        $scope.sendmessage = function ($event) {
 	            //            alert(angular.toJson(vm.rental));
 	            $event.preventDefault();
-
-
 
 	            var request = $http({
 	                method: "post",
@@ -53026,25 +51506,14 @@ webpackJsonp([0],[
 	                data: { _obj: vm.rental }
 	            });
 
+	            request.success(function (data, status, headers, config) {}).error(function (data, status, headers, config) {});
 
-
-	            request
-	            .success(function (data, status, headers, config) { })
-	            .error(function (data, status, headers, config) { });
-
-
-
-
-	//            $state.go('thankyou');
+	            //            $state.go('thankyou');
 	            $state.go('home');
 	        };
 
 	        var vm = this;
-	        $scope.inqtypes =
-	            [
-	            { id: 1, name: "contact us" },
-	            { id: 2, name: "build a list" }
-	            ];
+	        $scope.inqtypes = [{ id: 1, name: "contact us" }, { id: 2, name: "build a list" }];
 
 	        // The model object that we reference
 	        // on the  element in index.html
@@ -53053,159 +51522,135 @@ webpackJsonp([0],[
 	        // An array of our form fields with configuration
 	        // and options set. We make reference to this in
 	        // the 'fields' attribute on the  element
-	        vm.rentalFields = [
-	            {
-	                key: 'first_name',
-	//                type: "horizontalInput",
-	                type: "bs4Input",
-	                //                validators: { notbob: "$viewValue!=='bob'" },
-	                templateOptions: {
-	                    type: 'text',
-	//                    label: 'First Name',
-	                    placeholder: 'First Name',
-	                    required: true,
-	//                    minlength: 5,
-	                    maxlength: 25,
+	        vm.rentalFields = [{
+	            key: 'first_name',
+	            //                type: "horizontalInput",
+	            type: "bs4Input",
+	            //                validators: { notbob: "$viewValue!=='bob'" },
+	            templateOptions: {
+	                type: 'text',
+	                //                    label: 'First Name',
+	                placeholder: 'First Name',
+	                required: true,
+	                //                    minlength: 5,
+	                maxlength: 25,
 
-	                    validation: {
-	                        messages: [{
-	                            name: 'required',
-	                            message: "Sorry, that wasn''t the correct email address."
-	                        }]
-	                    }
-
-
-
-	                },
-
-
-	            },
-
-
-
-	            {
-	                key: 'last_name',
-	//                type: "horizontalInput",
-	                type: "bs4Input",
-	                templateOptions: {
-	                    type: 'text',
-	//                    label: 'Last Name',
-	                    placeholder: 'Last Name',
-	//                    minlength: 5,
-	                    maxlength: 25,
-	                    required: true
+	                validation: {
+	                    messages: [{
+	                        name: 'required',
+	                        message: "Sorry, that wasn''t the correct email address."
+	                    }]
 	                }
-	            },
-	            {
-	                key: 'company',
-	//                type: "horizontalInput",
-	                type: "bs4Input",
-	                templateOptions: {
-	                    type: 'text',
-	//                    label: 'Company',
-	                    placeholder: 'Company Name',
-	//                    minlength: 5,
-	                    maxlength: 40,
-	                    required: false
-	                }
-	            },
-	            {
-	                key: 'email',
-	//                type: "horizontalInput",
-	                type: "bs4Input",
-	                templateOptions: {
-	                    type: 'email',
-	//                    label: 'Email address',
-	                    placeholder: 'Email',
-	//                    minlength: 10,
-	                    maxlength: 80,
-	                    required: true
-	                }
-	            },
-	            {
-	                key: 'phone',
-	//                type: "horizontalInput",
-	                type: "bs4Input",
-	                templateOptions: {
-	                    type: 'text',
-	//                    label: 'Phone',
-	                    placeholder: 'Phone',
-	//                    minlength: 5,
-	                    maxlength: 15,
-	                    required: true
-	                }
-	            },
-	            /*            {
-	                key: 'inquiry_type',
-	                type: 'horizontalSelect',
-	                templateOptions: {
-	                    label: 'Inquiry Type',
-	                    labelProp: 'name',
-	                    valueProp: 'name',
-	                    options: $scope.inqtypes
-	                }
-	            },
-	            */
 
-
-	            {
-	                key: 'message',
-	//                type: 'horizontalTextArea',
-	                type: 'bs4TextArea',
-	                templateOptions:
-	                    {
-	//                        label: 'Message',
-	                        rows: 5,
-	                        placeholder: 'Your message',
-	                        minlength: 25,
-	                        maxlength: 250,
-	                        required: true
-	                    }
 	            }
 
-	/*
+	        }, {
+	            key: 'last_name',
+	            //                type: "horizontalInput",
+	            type: "bs4Input",
+	            templateOptions: {
+	                type: 'text',
+	                //                    label: 'Last Name',
+	                placeholder: 'Last Name',
+	                //                    minlength: 5,
+	                maxlength: 25,
+	                required: true
+	            }
+	        }, {
+	            key: 'company',
+	            //                type: "horizontalInput",
+	            type: "bs4Input",
+	            templateOptions: {
+	                type: 'text',
+	                //                    label: 'Company',
+	                placeholder: 'Company Name',
+	                //                    minlength: 5,
+	                maxlength: 40,
+	                required: false
+	            }
+	        }, {
+	            key: 'email',
+	            //                type: "horizontalInput",
+	            type: "bs4Input",
+	            templateOptions: {
+	                type: 'email',
+	                //                    label: 'Email address',
+	                placeholder: 'Email',
+	                //                    minlength: 10,
+	                maxlength: 80,
+	                required: true
+	            }
+	        }, {
+	            key: 'phone',
+	            //                type: "horizontalInput",
+	            type: "bs4Input",
+	            templateOptions: {
+	                type: 'text',
+	                //                    label: 'Phone',
+	                placeholder: 'Phone',
+	                //                    minlength: 5,
+	                maxlength: 15,
+	                required: true
+	            }
+	        },
+	        /*            {
+	            key: 'inquiry_type',
+	            type: 'horizontalSelect',
+	            templateOptions: {
+	                label: 'Inquiry Type',
+	                labelProp: 'name',
+	                valueProp: 'name',
+	                options: $scope.inqtypes
+	            }
+	        },
+	        */
 
-	            {
-	                key: 'captcha',
-	                type: "horizontalCaptcha"
-
-
-	           , validators:
 	        {
-	            //            bob: '$viewValue=="bob"',
-
-	            xxx: {
-	                expression: function (vVal, mVal, scope) { return scope.check(vVal); },
-	                message: "xxxxxxxxxxx"
+	            key: 'message',
+	            //                type: 'horizontalTextArea',
+	            type: 'bs4TextArea',
+	            templateOptions: {
+	                //                        label: 'Message',
+	                rows: 5,
+	                placeholder: 'Your message',
+	                minlength: 25,
+	                maxlength: 250,
+	                required: true
 	            }
-
 	        }
+
+	        /*
 	        
-
-	                , templateOptions: {
-	                    label: 'Captcha',
-	                    placeholder: 'Enter 4-digit number'
+	                    {
+	                        key: 'captcha',
+	                        type: "horizontalCaptcha"
+	        
+	        
+	                   , validators:
+	                {
+	                    //            bob: '$viewValue=="bob"',
+	        
+	                    xxx: {
+	                        expression: function (vVal, mVal, scope) { return scope.check(vVal); },
+	                        message: "xxxxxxxxxxx"
+	                    }
+	        
 	                }
-	            }
-	            */
-
-
-
-
+	                
+	        
+	                        , templateOptions: {
+	                            label: 'Captcha',
+	                            placeholder: 'Enter 4-digit number'
+	                        }
+	                    }
+	                    */
 
 	        ];
-
-
-
-	 
 	    }
 	    ContactController.$inject = ["$scope", "$state", "$http", "FFD_CONST"];
 
-
-
 	    return ContactController;
-
-	}
+	};
 
 /***/ },
 /* 142 */
@@ -53213,9 +51658,7 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 	    __webpack_require__(143);
 
 	    __webpack_require__(145)(app);
@@ -53223,21 +51666,15 @@ webpackJsonp([0],[
 	    __webpack_require__(150)(app);
 
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
-	        _views = { 'content@root': { template: __webpack_require__(153) , controller: __webpack_require__(154)(app), controllerAs: 'vm' } };
-	        $stateProvider.state('howitworks', { parent: 'root', url: 'how-it-works', views: _views, params: { scrollto: null} });
-
+	        _views = { 'content@root': { template: __webpack_require__(153), controller: __webpack_require__(154)(app), controllerAs: 'vm' } };
+	        $stateProvider.state('howitworks', { parent: 'root', url: 'how-it-works', views: _views, params: { scrollto: null } });
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 143 */
@@ -53252,33 +51689,23 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 	    /* @ngInject */
-
 
 	    app.directive('howItPart', _howitpart);
 
-
-	    function _howitpart()
-	    {
-	        var _res =
-	         {
-	             restrict: 'E',
-	             replace: true,
-	             scope: { title: '@', icon: '@' , inverse:'@', last:'@', bgicon:'@' },
-	             transclude: true,
-	             template: __webpack_require__(146)
-	         };
+	    function _howitpart() {
+	        var _res = {
+	            restrict: 'E',
+	            replace: true,
+	            scope: { title: '@', icon: '@', inverse: '@', last: '@', bgicon: '@' },
+	            transclude: true,
+	            template: __webpack_require__(146)
+	        };
 
 	        return _res;
 	    }
-
-
-
-
-	}
+	};
 
 /***/ },
 /* 146 */
@@ -53292,65 +51719,54 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 	    /* @ngInject */
 
-
 	    app.directive('howToEst', _howtoest);
 
-
 	    function _howtoest() {
-	        var _res =
-	         {
-	             restrict: 'E',
-	             replace: true,
-	             scope: {},
-	             template: __webpack_require__(148),
-	             controller: _How2EstController,
-	             controllerAs: 'vm'
-	         };
+	        var _res = {
+	            restrict: 'E',
+	            replace: true,
+	            scope: {},
+	            template: __webpack_require__(148),
+	            controller: _How2EstController,
+	            controllerAs: 'vm'
+	        };
 
 	        return _res;
 	    }
 
-
-	    function _How2EstController($timeout, $uiViewScroll, $stateParams, InfoFactory, ChoicesFactory,ToolsService) {
+	    function _How2EstController($timeout, $uiViewScroll, $stateParams, InfoFactory, ChoicesFactory, ToolsService) {
 	        var vm = this;
 	        vm.bustypes = InfoFactory.bustypes;
 	        vm.choices = ChoicesFactory.choices;
-	        vm.change_type = function (_type)
-	        {
+	        vm.change_type = function (_type) {
 	            vm.choices.bustype = vm.bustypes[_type];
 	            $timeout(function () {
 	                $uiViewScroll(angular.element('.orange-bar:visible'));
 	            }, 500);
-	        }
+	        };
 
-
-	        vm.download_sample = function (_event)
-	        {
+	        vm.download_sample = function (_event) {
 	            _event.preventDefault();
 	            ToolsService.DownloadSample();
 	        };
 
-	//        vm.sampleurl = require('../../../samples/sample.xlsx');
+	        //        vm.sampleurl = require('../../../samples/sample.xlsx');
 
 	        var _sto = $stateParams.scrollto;
-	        if ($stateParams.scrollto)
-	        {
+	        if ($stateParams.scrollto) {
 	            //            $uiViewScroll(angular.element('#' + $stateParams.scrollto));
-	//            $timeout(function () { $uiViewScroll($('.' + $stateParams.scrollto + ':visible')); }, 1000);
+	            //            $timeout(function () { $uiViewScroll($('.' + $stateParams.scrollto + ':visible')); }, 1000);
 
-	//            $timeout(function () { $uiViewScroll($($stateParams.scrollto)); }, 1000);
-	            $timeout(function () { $uiViewScroll(angular.element($stateParams.scrollto)); }, 1000);
-
-
+	            //            $timeout(function () { $uiViewScroll($($stateParams.scrollto)); }, 1000);
+	            $timeout(function () {
+	                $uiViewScroll(angular.element($stateParams.scrollto));
+	            }, 1000);
 	        }
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 148 */
@@ -53370,32 +51786,25 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 	    /* @ngInject */
 
-
 	    app.directive('howToNew', _howtoest);
 
-
-	    function _howtoest()
-	    {
-	        var _res =
-	         {
-	             restrict: 'E',
-	             replace: true,
-	             scope:{},
-	             template: __webpack_require__(151),
-	             controller: _How2NewController,
-	             controllerAs: 'vm'
-	         };
+	    function _howtoest() {
+	        var _res = {
+	            restrict: 'E',
+	            replace: true,
+	            scope: {},
+	            template: __webpack_require__(151),
+	            controller: _How2NewController,
+	            controllerAs: 'vm'
+	        };
 
 	        return _res;
 	    }
 
-
-	    function _How2NewController($timeout, $uiViewScroll, $stateParams, InfoFactory, ChoicesFactory,ToolsService)
-	    {
+	    function _How2NewController($timeout, $uiViewScroll, $stateParams, InfoFactory, ChoicesFactory, ToolsService) {
 	        var vm = this;
 	        vm.bustypes = InfoFactory.bustypes;
 	        vm.choices = ChoicesFactory.choices;
@@ -53404,33 +51813,27 @@ webpackJsonp([0],[
 	            $timeout(function () {
 	                $uiViewScroll(angular.element('.orange-bar:visible'));
 	            }, 500);
-	        }
+	        };
+
+	        //        vm.sampleurl = require('../../../samples/sample.xlsx');
 
 
-
-	//        vm.sampleurl = require('../../../samples/sample.xlsx');
-
-
-	        vm.download_sample = function (_event)
-	        {
+	        vm.download_sample = function (_event) {
 	            _event.preventDefault();
 	            ToolsService.DownloadSample();
 	        };
 
-
-
 	        var _sto = $stateParams.scrollto;
-	        if ($stateParams.scrollto)
-	        {
+	        if ($stateParams.scrollto) {
 	            //              $uiViewScroll($('.' + $stateParams.scrollto+':visible'));
 
-	//            $timeout(function () { $uiViewScroll($($stateParams.scrollto)); }, 1000);
-	            $timeout(function () { $uiViewScroll(angular.element($stateParams.scrollto)); }, 1000);
-
+	            //            $timeout(function () { $uiViewScroll($($stateParams.scrollto)); }, 1000);
+	            $timeout(function () {
+	                $uiViewScroll(angular.element($stateParams.scrollto));
+	            }, 1000);
 	        }
 	    }
-
-	}
+	};
 
 /***/ },
 /* 151 */
@@ -53456,32 +51859,19 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function _controller(InfoFactory, ChoicesFactory)
-	    {
+	    function _controller(InfoFactory, ChoicesFactory) {
 	        var vm = this;
 	        vm.bustypes = InfoFactory.bustypes;
 	        vm.choices = ChoicesFactory.choices;
 	        vm.type_id = ChoicesFactory.choices.bustype.id;
-
 	    }
 	    _controller.$inject = ["InfoFactory", "ChoicesFactory"];
 
-
-
-
-
-
-
-
-
 	    return _controller;
-
-	}
+	};
 
 /***/ },
 /* 155 */
@@ -53489,28 +51879,20 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	__webpack_require__(156);
 
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
 	        _views = { 'content@root': { template: __webpack_require__(158) } };
 	        $stateProvider.state('pricing', { parent: 'root', url: 'pricing', views: _views });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 156 */
@@ -53537,28 +51919,20 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	__webpack_require__(161);
 
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
 	        _views = { 'content@root': { template: __webpack_require__(163), controller: __webpack_require__(165)(app), controllerAs: 'vm' } };
 	        $stateProvider.state('yourdatapro', { parent: 'root', url: 'your-data-pro', views: _views });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 161 */
@@ -53585,34 +51959,25 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 	    /* @ngInject */
 
-	    function _YourDataProController($scope,toaster)
-	    {
+	    function _YourDataProController($scope, toaster) {
 	        var vm = this;
 
-	        vm.cal_expert=function()
-	        {
-	            if(!window.Tawk_API)
-	            {
-	                toaster.pop('info','Tawk API not loade!');
+	        vm.cal_expert = function () {
+	            if (!window.Tawk_API) {
+	                toaster.pop('info', 'Tawk API not loade!');
 	                return false;
 	            }
 	            Tawk_API.toggle();
 	            return false;
-	        }
-
+	        };
 	    }
 	    _YourDataProController.$inject = ["$scope", "toaster"];
 
-
-
 	    return _YourDataProController;
-
-	}
+	};
 
 /***/ },
 /* 166 */
@@ -53624,29 +51989,21 @@ webpackJsonp([0],[
 
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
 
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
-	        _views =
-	            {
-	// 09-22-2016                'header@root': { template: require('./header.tpl.html') }, 
+	        _views = {
+	            // 09-22-2016                'header@root': { template: require('./header.tpl.html') }, 
 
-	                'content@root': { template: __webpack_require__(169), controller: __webpack_require__(170)(app), controllerAs: 'vm' }
-	    };
-	        $stateProvider.state('search', { parent: 'root', url: 'search', views: _views });
-
+	            'content@root': { template: __webpack_require__(169), controller: __webpack_require__(170)(app), controllerAs: 'vm' }
+	        };
+	        $stateProvider.state('search', { parent: 'root', url: 'search', views: _views /* , authenticate: true  */ });
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 167 */
@@ -53667,23 +52024,17 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-
-	{
-
-
-
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function _SearchController(FFD_CONST, InfoFactory, ChoicesFactory, $scope, $localStorage, $timeout,  toaster, GetResultsFactory) {
+	    function _SearchController(FFD_CONST, InfoFactory, ChoicesFactory, $scope, $localStorage, $timeout, toaster, GetResultsFactory) {
 
 	        var _frst = true;
 
 	        var vm = this;
 
-	//        vm.selcolors = ['red'];
-	//        vm.colors = ['red', 'blue', 'green'];
+	        //        vm.selcolors = ['red'];
+	        //        vm.colors = ['red', 'blue', 'green'];
 
 	        vm.choices = ChoicesFactory.choices;
 
@@ -53698,20 +52049,12 @@ webpackJsonp([0],[
 	        vm.zipcodes = [];
 	        vm.areacodes = [];
 
-
-
-	        vm.set2start = function ()
-	        {
+	        vm.set2start = function () {
 	            /*
 	            var _dend = moment().format("MM/DD/YYYY");
 	            var _dstart = moment().subtract(6, "months").format("MM/DD/YYYY");
-
-
-	            ChoicesFactory.choices =
-
-
-
-	        {
+	              ChoicesFactory.choices =
+	            {
 	            bustype: vm.choices.bustype,
 	            date_start: _dstart,
 	            date_start_: moment().subtract(6, "months").toDate(),
@@ -53733,66 +52076,58 @@ webpackJsonp([0],[
 	            salesvolumes: [],
 	            chkContactNames: false,
 	            chkPhoneNumbers: false
-	        };
-	        */
+	            };
+	            */
 
-	            $timeout(function ()
-	            {
+	            $timeout(function () {
 	                ChoicesFactory.clear_choices();
 	                vm.choices = ChoicesFactory.choices;
 	            });
-
-
 	        };
 
 	        vm.results = { _count: 0, _leftcount: 0, _demo: false, isLoaded: false };
 
 	        vm.refresh_counters = function () {
 
-	            GetResultsFactory.getCounters()
-	                   .then(function (data) {
+	            GetResultsFactory.getCounters().then(function (data) {
 
-	                       vm.results =
-	                           {
-	                               _count: data.count,
-	                               _leftcount: data.leftcount,
-	                               _demo: JSON.parse(data.demo.toLowerCase()),
-	                               isLoaded: true
-	                           };
-	                   });
-
-
+	                vm.results = {
+	                    _count: data.count,
+	                    _leftcount: data.leftcount,
+	                    _demo: JSON.parse(data.demo.toLowerCase()),
+	                    isLoaded: true
+	                };
+	            });
 	        };
-
 
 	        vm.getcities = function (phrase) {
 	            vm.cities = [];
-	            InfoFactory.getcities(phrase, vm.choices.states)
-	            .then(function (_cities) { vm.cities = _cities.cities; });
+	            InfoFactory.getcities(phrase, vm.choices.states).then(function (_cities) {
+	                vm.cities = _cities.cities;
+	            });
 	        };
 
 	        vm.getcounties = function (phrase) {
 	            vm.counties = [];
-	            InfoFactory.getcounties(phrase, vm.choices.states)
-	            .then(function (_counties) { vm.counties = _counties.counties; });
+	            InfoFactory.getcounties(phrase, vm.choices.states).then(function (_counties) {
+	                vm.counties = _counties.counties;
+	            });
 	        };
-
-
 
 	        vm.getkeywords = function (phrase) {
 	            vm.keywords = [];
-	            InfoFactory.getsic2kw(phrase)
-	            .then(function (_kw) { vm.keywords = _kw.keywords; });
+	            InfoFactory.getsic2kw(phrase).then(function (_kw) {
+	                vm.keywords = _kw.keywords;
+	            });
 	        };
 
+	        InfoFactory.getallstates().then(function (_states) {
+	            vm.states = _states.states;
+	        });
 
-
-	        InfoFactory.getallstates()
-	        .then(function (_states) { vm.states = _states.states; });
-
-	        InfoFactory.getsiccodes()
-	        .then(function (_siccodes) { vm.siccodes = _siccodes.siccodes; });
-
+	        InfoFactory.getsiccodes().then(function (_siccodes) {
+	            vm.siccodes = _siccodes.siccodes;
+	        });
 
 	        vm.checkMiles = function () {
 	            var _correct = true;
@@ -53800,9 +52135,13 @@ webpackJsonp([0],[
 	            var _tmp_1 = parseInt("0" + _tmp).toString();
 	            var _tmp_2 = parseInt(_tmp_1);
 
-	            if ((_tmp.length > 0) && (_tmp.length != _tmp_1.length)) { _correct = false; }
+	            if (_tmp.length > 0 && _tmp.length != _tmp_1.length) {
+	                _correct = false;
+	            }
 
-	            if ((!_correct) && _tmp_2 > 999) { _correct = false; }
+	            if (!_correct && _tmp_2 > 999) {
+	                _correct = false;
+	            }
 
 	            if (!_correct) {
 	                $timeout(function () {
@@ -53812,13 +52151,13 @@ webpackJsonp([0],[
 	            }
 	        };
 
-
-
 	        vm.checkZipRadius = function () {
 	            var _correct = true;
 
 	            var _tmp = vm.choices.zipForRadius.trim();
-	            if ((_tmp.length > 0) && (!/^\d{5}$/.test(_tmp))) { _correct = false; }
+	            if (_tmp.length > 0 && !/^\d{5}$/.test(_tmp)) {
+	                _correct = false;
+	            }
 
 	            if (!_correct) {
 	                $timeout(function () {
@@ -53828,12 +52167,7 @@ webpackJsonp([0],[
 	            }
 	        };
 
-
-
-
-
 	        activate();
-
 
 	        function activate() {
 	            $scope.$watch("vm.choices.states", function (new_, old_) {
@@ -53846,17 +52180,17 @@ webpackJsonp([0],[
 	                _frst = false;
 	            });
 
-
-
 	            vm.getdraftzip = function (_val) {
-	                if (_val != '') { vm._lastzip = _val; };
-	                var _rez = (!/^\d{5}(-\d{5})?$/.test(vm._lastzip));
-	                if (!_rez && (_val == '')) { vm.choices.zipcodes.push(vm._lastzip); vm.choices.zipcodes = _.uniq(vm.choices.zipcodes); }
-
+	                if (_val != '') {
+	                    vm._lastzip = _val;
+	                };
+	                var _rez = !/^\d{5}(-\d{5})?$/.test(vm._lastzip);
+	                if (!_rez && _val == '') {
+	                    vm.choices.zipcodes.push(vm._lastzip);vm.choices.zipcodes = _.uniq(vm.choices.zipcodes);
+	                }
 	            };
 
-
-	//            $scope.$watch("vm.choices.bustype", function (new_, old_) { vm.set2start(); });
+	            //            $scope.$watch("vm.choices.bustype", function (new_, old_) { vm.set2start(); });
 
 	            $scope.$watch("vm.choices.zipcodes", function (new_, old_) {
 	                $timeout(function () {
@@ -53868,7 +52202,7 @@ webpackJsonp([0],[
 	                            if (_arr.length == 2) {
 	                                var _istart = parseInt(_arr[0]);
 	                                var _iend = parseInt(_arr[1]);
-	                                _rez = (_istart > _iend);
+	                                _rez = _istart > _iend;
 	                            }
 	                        }
 
@@ -53877,8 +52211,6 @@ webpackJsonp([0],[
 	                        }
 
 	                        return _rez;
-
-
 	                    });
 	                }, 0);
 	            });
@@ -53893,7 +52225,7 @@ webpackJsonp([0],[
 	                            if (_arr.length == 2) {
 	                                var _istart = parseInt(_arr[0]);
 	                                var _iend = parseInt(_arr[1]);
-	                                _rez = (_istart > _iend);
+	                                _rez = _istart > _iend;
 	                            }
 	                        }
 
@@ -53902,29 +52234,15 @@ webpackJsonp([0],[
 	                        }
 
 	                        return _rez;
-
-
 	                    });
 	                }, 0);
 	            });
-
-
-
-
-
 	        }
-
-
-
-
 	    }
 	    _SearchController.$inject = ["FFD_CONST", "InfoFactory", "ChoicesFactory", "$scope", "$localStorage", "$timeout", "toaster", "GetResultsFactory"];;
 
-
-
 	    return _SearchController;
-
-	}
+	};
 
 /***/ },
 /* 171 */
@@ -53939,29 +52257,21 @@ webpackJsonp([0],[
 	    __webpack_require__(174)(app);
 	    __webpack_require__(177)(app);
 
-
 	    /* @ngInject */
 
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
-	        _views =
-	            {
-	                'header@root': { template: __webpack_require__(180) }, 
+	        _views = {
+	            'header@root': { template: __webpack_require__(180) },
 
-	                'content@root': { template: __webpack_require__(181) }
-	    };
+	            'content@root': { template: __webpack_require__(181) }
+	        };
 	        $stateProvider.state('previewdata', { parent: 'root', url: 'previewdata', views: _views, authenticate: true });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 172 */
@@ -53976,15 +52286,12 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    app.directive('previewDataDesktop', _directive);
 
-	    function _directive()
-	    {
-	        var _res =
-	        {
+	    function _directive() {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
 	            template: __webpack_require__(175),
@@ -53994,9 +52301,7 @@ webpackJsonp([0],[
 
 	        return _res;
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 175 */
@@ -54010,28 +52315,11 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-
 	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	    var _controller = function (
-
-	        $q,
-	        $scope, $localStorage, $sessionStorage, $timeout, $http, $state, _,
-	        FFD_CONST, toaster,
-
-	        uiGridConstants, uiGridPaginationService,
-	        LoginService,
-	        InfoFactory, ChoicesFactory,
-	          GetResultsFactory,
-	          PreviewDataService,
-	          GoogleGeoService,
-	          ToolsService
-	        ) 
-	    
-	        {
+	    var _controller = function _controller($q, $scope, $localStorage, $sessionStorage, $timeout, $http, $state, _, FFD_CONST, toaster, uiGridConstants, uiGridPaginationService, LoginService, InfoFactory, ChoicesFactory, GetResultsFactory, PreviewDataService, GoogleGeoService, ToolsService) {
 
 	        /*  tst-point */
 
@@ -54049,11 +52337,11 @@ webpackJsonp([0],[
 	        var cntrecords = 0;
 	        var _name_for_save = _settings.name_for_save;
 
-
 	        //        vm.onexit = function () { vm.saveState(); };
 	        //        $state.get('previewestimatedbusinessgrid').onExit = vm.onexit;
-	        $state.current.onExit = function () { vm.saveState(); $timeout.cancel(vm._timer); };
-
+	        $state.current.onExit = function () {
+	            vm.saveState();$timeout.cancel(vm._timer);
+	        };
 
 	        //        $scope.rbOmits = true;
 	        vm._demo = false;
@@ -54062,9 +52350,6 @@ webpackJsonp([0],[
 	        vm._invoiceid = 0;
 	        vm.isLoaded = false;
 	        vm.isDataLoaded = false;
-
-
-
 
 	        vm.gridOptions = {
 	            paginationTemplate: "ui-grid/pagination-z"
@@ -54083,102 +52368,92 @@ webpackJsonp([0],[
 	        vm.gridOptions.showColumnFooter = false;
 	        vm.gridOptions.fastWatch = true;
 
-
 	        vm.gridOptions.enablePaging = true;
 	        vm.gridOptions.paginationPageSizes = [5, 10, 25, 50, 75, 100, 200];
 	        vm.gridOptions.paginationPageSize = 25;
 	        vm.gridOptions.useExternalPagination = true;
 
-
 	        vm.gridOptions.columnDefs = _settings.coldefs;
 
-	        vm.gridOptions.rowIdentity = function (row) { return row.ClientID; };
-	        vm.gridOptions.getRowIdentity = function (row) { return row.ClientID; };
+	        vm.gridOptions.rowIdentity = function (row) {
+	            return row.ClientID;
+	        };
+	        vm.gridOptions.getRowIdentity = function (row) {
+	            return row.ClientID;
+	        };
 
 	        vm.gridOptions.onRegisterApi = function (gridApi) {
 	            console.log('onRegisterApi');
 
 	            vm.gridApi = gridApi;
 
-
-
 	            gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
 	                console.log('paginationChanged');
-	                if (vm.getPage) { vm.getPage(newPage, pageSize, false); }
+	                if (vm.getPage) {
+	                    vm.getPage(newPage, pageSize, false);
+	                }
 	            });
 
+	            gridApi.selection.on.rowSelectionChanged($scope, function (rows) {
+	                console.log('rowSelectionChanged');
+	                $timeout(function () {
+	                    _save_page();
+	                });
+	            });
 
-	            gridApi.selection.on.rowSelectionChanged($scope,
-	                function (rows) {
-	                    console.log('rowSelectionChanged');
-	                    $timeout(function () { _save_page(); });
-	                }
-	                );
-
-
-
-	            gridApi.selection.on.rowSelectionChangedBatch($scope,
-	                function (rows) {
-	                    console.log('rowSelectionChangedBatch');
-	                    $timeout(function () { _save_page(); vm.getselected(); });
-	                }
-	                );
-
-
-
+	            gridApi.selection.on.rowSelectionChangedBatch($scope, function (rows) {
+	                console.log('rowSelectionChangedBatch');
+	                $timeout(function () {
+	                    _save_page();vm.getselected();
+	                });
+	            });
 
 	            gridApi.grid.registerDataChangeCallback(function (data) {
 	                console.log('registerDataChangeCallback');
-	                $timeout(function () { _rest_page(); });
-	            }
-	            , [uiGridConstants.dataChange.ALL]
-	            );
+	                $timeout(function () {
+	                    _rest_page();
+	                });
+	            }, [uiGridConstants.dataChange.ALL]);
 
 	            activate();
 	            vm.SelectAll();
-
-
 	        };
 
 	        vm.new_search = function () {
 	            ChoicesFactory.clear_choices();
 	            $state.go("search");
-	        }
+	        };
 
 	        vm.SelectAll = function () {
 	            vm._SelAll = true;
 	            vm._SelArr = [];
 	            vm.gridApi.selection.selectAllRows();
-	        }
+	        };
 
 	        vm.UnSelectAll = function () {
 	            vm._SelAll = false;
 	            vm._SelArr = [];
 	            vm.gridApi.selection.clearSelectedRows();
-	        }
+	        };
 
-	        vm.enablelist = function ()
-	        {
-	//            vm._enablelist = (vm._invoiceid == 0) || ((vm._selected > 0) && (vm._leftcount >= vm._selected));
-	            vm._enablelist = (vm._invoiceid == 0) || ((vm._selected > 0)  );
+	        vm.enablelist = function () {
+	            //            vm._enablelist = (vm._invoiceid == 0) || ((vm._selected > 0) && (vm._leftcount >= vm._selected));
+	            vm._enablelist = vm._invoiceid == 0 || vm._selected > 0;
 	        };
 
 	        vm.getselected = function () {
-	            vm._selected = vm._SelAll ? (vm.gridOptions.totalItems - vm._SelArr.length) : vm._SelArr.length;
+	            vm._selected = vm._SelAll ? vm.gridOptions.totalItems - vm._SelArr.length : vm._SelArr.length;
 	        };
-
 
 	        function _save_page() {
 	            if (vm.gridApi.grid.rows.length == 0) return;
-
 
 	            var _sel_rows = _.map(vm.gridApi.selection.getSelectedGridRows(), "entity.ClientID");
 	            var _all_rows = _.map(vm.gridApi.grid.rows, "entity.ClientID");
 	            var _unsel_rows = _.difference(_all_rows, _sel_rows);
 	            if (vm._SelAll) {
 	                vm._SelArr = _.union(_.difference(vm._SelArr, _all_rows), _unsel_rows);
-	            }
-	            else {
+	            } else {
 	                vm._SelArr = _.union(_.difference(vm._SelArr, _all_rows), _sel_rows);
 	            }
 	        }
@@ -54188,22 +52463,18 @@ webpackJsonp([0],[
 
 	            vm.gridApi.selection.clearSelectedRows();
 
-	            _.forEach(
-	                vm.gridApi.grid.rows,
-	                function (item, indx) {
-	                    if (_.indexOf(vm._SelArr, item.entity.ClientID) < 0)
-	                    { if (vm._SelAll) vm.gridApi.selection.selectRow(item.entity); }
-	                    else
-	                    { if (!vm._SelAll) vm.gridApi.selection.selectRow(item.entity); }
-	                });
-
+	            _.forEach(vm.gridApi.grid.rows, function (item, indx) {
+	                if (_.indexOf(vm._SelArr, item.entity.ClientID) < 0) {
+	                    if (vm._SelAll) vm.gridApi.selection.selectRow(item.entity);
+	                } else {
+	                    if (!vm._SelAll) vm.gridApi.selection.selectRow(item.entity);
+	                }
+	            });
 	        }
-
 
 	        vm.getPage = function (_page, _size, _init) {
 	            var promise = PreviewDataService.getPage(_page, _size, _init);
-	            promise.then(
-	            function (data) {
+	            promise.then(function (data) {
 	                vm.gridOptions.totalItems = data.cntrecords;
 	                //                vm._records = _.col13dig2date(data.records);
 	                //                vm.gridOptions.data = _.col13dig2date(data.records);
@@ -54211,20 +52482,12 @@ webpackJsonp([0],[
 	                //                vm.gridOptions.data = data.records;
 	                vm.gridOptions.data = _.col13dig2date(data.records);
 
-
 	                var _len = vm.gridOptions.data.length;
 	                vm.gridOptions.minRowsToShow = _len + 3;
-
-
-
-
 	            });
 
 	            return promise;
 	        };
-
-
-
 
 	        vm.dynamicMarkers = [];
 	        var map;
@@ -54237,37 +52500,25 @@ webpackJsonp([0],[
 	                data: { _ids: vm._SelArr, _selectall: vm._SelAll }
 	            });
 
+	            request.success(function (data, status, headers, config) {
+	                console.log(data);
+	                if (data.d.result == "OK") {
+	                    GoogleGeoService.ShowMap(data.d.mapdata);
+	                }
+	                if (data.d.result == "ERROR" && data.d.errmsg) {
+	                    toaster.pop('error', data.d.errmsg);
+	                }
+	            });
+	        };
 
-	            request
-	            .success(
-	                        function (data, status, headers, config) {
-	                            console.log(data);
-	                            if (data.d.result == "OK") {
-	                                GoogleGeoService.ShowMap(data.d.mapdata);
-	                            }
-	                            if (data.d.result == "ERROR" && data.d.errmsg) {
-	                                toaster.pop('error', data.d.errmsg);
-	                            }
-	                        }
-	                    );
+	        vm.getlist = function () {
 
-	        }
-
-
-
-	        vm.getlist = function ()
-	        {
-
-	//            if ((!vm.createSubscr) && (vm._leftcount < vm._selected))
-	            if ((!vm.createSubscr) && (vm._leftcount < vm.choices._count_Data))
-	            {
+	            //            if ((!vm.createSubscr) && (vm._leftcount < vm._selected))
+	            if (!vm.createSubscr && vm._leftcount < vm.choices._count_Data) {
 	                var _message = "This download will exceed your 5,000 record monthly allotment. Please adjust your quantity and try again";
 	                toaster.pop({ type: 'info', body: _message, timeout: 0 });
 	                return;
 	            }
-
-
-	         
 
 	            var request = $http({
 	                method: "post",
@@ -54275,14 +52526,11 @@ webpackJsonp([0],[
 	                data: { _ids: vm._SelArr, _selectall: vm._SelAll, _random: _choices._random_Data, _count: _choices._count_Data }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                console.log(data);
-	                if (data.d.result == "OK")
-	                {
+	                if (data.d.result == "OK") {
 	                    vm._leftcount = data.d.userleftcount;
 	                    vm._invoiceid = data.d.invoiceid;
-
 
 	                    angular.element('.dwnl').remove();
 	                    var anchor = angular.element('<iframe class="dwnl" ></iframe>');
@@ -54293,43 +52541,26 @@ webpackJsonp([0],[
 
 	                    anchor.appendTo('body');
 
-
-
 	                    vm.isDataLoaded = true;
 
-	                    if (vm.createSubscr)
-	                    {
+	                    if (vm.createSubscr) {
 	                        ActivateProposal('Not yet, show me 25 free records first', 1000);
 	                    }
-
 	                }
 	                if (data.d.result == "ERROR" && data.d.errmsg) {
 	                    toaster.pop('error', data.d.errmsg);
 	                }
-
-	            })
-	            .error(function (data, status, headers, config) { });
-
-
-
-
-
-
+	            }).error(function (data, status, headers, config) {});
 	        };
 
+	        vm.getlistbyemail = function () {
+	            //            if ((!vm.createSubscr) && (vm._leftcount < vm._selected))
 
-
-	        vm.getlistbyemail = function ()
-	        {
-	//            if ((!vm.createSubscr) && (vm._leftcount < vm._selected))
-
-	            if ((!vm.createSubscr) && (vm._leftcount < vm.choices._count_Data))
-	           {
+	            if (!vm.createSubscr && vm._leftcount < vm.choices._count_Data) {
 	                var _message = "This download will exceed your 5,000 record monthly allotment. Please adjust your quantity and try again";
-	                toaster.pop({type:'info', body: _message, timeout:0});
+	                toaster.pop({ type: 'info', body: _message, timeout: 0 });
 	                return;
 	            }
-
 
 	            var request = $http({
 	                method: "post",
@@ -54337,37 +52568,27 @@ webpackJsonp([0],[
 	                data: { _ids: vm._SelArr, _selectall: vm._SelAll, _random: _choices._random_Data, _count: _choices._count_Data }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                console.log(data);
-	                if (data.d.result == "OK")
-	                {
+	                if (data.d.result == "OK") {
 	                    vm._leftcount = data.d.userleftcount;
 	                    toaster.pop('success', data.d.message);
 	                    vm.isDataLoaded = true;
-	                    if (vm.createSubscr)
-	                    {
+	                    if (vm.createSubscr) {
 	                        ActivateProposal('Not yet, show me 25 free records first', 1000);
 	                    }
-
 	                }
 	                if (data.d.result == "ERROR" && data.d.errmsg) {
 	                    toaster.pop('error', data.d.errmsg);
 	                }
-	            })
-	            .error(function (data, status, headers, config) {
+	            }).error(function (data, status, headers, config) {
 	                var aa = 66;
 	            });
 	        };
 
-
-
-	        vm.download_and_email = function ()
-	        {
+	        vm.download_and_email = function () {
 
 	            if (!vm.createSubscr) return;
-
-
 
 	            var req_d = $http({
 	                method: "post",
@@ -54381,18 +52602,14 @@ webpackJsonp([0],[
 	                data: { _ids: vm._SelArr, _selectall: vm._SelAll, _random: _choices._random_Data, _count: _choices._count_Data }
 	            });
 
-
-	            $q.all([req_d, req_e]).then( function (data)
-	            {
+	            $q.all([req_d, req_e]).then(function (data) {
 	                console.log(data);
 	                var data_d = data[0].data.d;
 	                var data_e = data[1].data.d;
-	                if ((data_d.result == "OK") && (data_d.result == "OK"))
-	                {
+	                if (data_d.result == "OK" && data_d.result == "OK") {
 	                    vm._leftcount = data_d.userleftcount;
 	                    vm._leftcount = data_e.userleftcount;
 	                    vm._invoiceid = data_d.invoiceid;
-
 
 	                    angular.element('.dwnl').remove();
 	                    var anchor = angular.element('<iframe class="dwnl" ></iframe>');
@@ -54412,22 +52629,12 @@ webpackJsonp([0],[
 
 	                var _message = "";
 	                if (data_d.result == "ERROR" && data_d.errmsg) _message += data_d.errmsg;
-	                if (_message)   _message+='      ';
+	                if (_message) _message += '      ';
 	                if (data_e.result == "ERROR" && data_e.errmsg) _message += data_e.errmsg;
 
-	                if (_message)   toaster.pop('error', _message );
-
-
-
-	            }
-	            );
-
-
-
-
+	                if (_message) toaster.pop('error', _message);
+	            });
 	        };
-
-
 
 	        vm.state = {};
 
@@ -54441,130 +52648,84 @@ webpackJsonp([0],[
 	            vm.gridApi.saveState.restore(vm, vm.state);
 	        };
 
-
 	        vm.gridData = [];
 
-
-	        function activate()
-	        {
+	        function activate() {
 
 	            $scope.$watch(vm.getselected);
 	            $scope.$watch(vm.enablelist);
 
-
 	            /*
 	            var _stmp = $sessionStorage['searchform'];
 	            if (_stmp == null) return;
-
-	            var _tmp = angular.fromJson(_stmp);
-
-	            $scope.id = _tmp.choices["bustype"]["id"];
-
-	            GetResultsFactory.getCounters(_tmp.choices)
+	              var _tmp = angular.fromJson(_stmp);
+	              $scope.id = _tmp.choices["bustype"]["id"];
+	              GetResultsFactory.getCounters(_tmp.choices)
 	            */
 
-
-
-	            LoginService.getuserinfo()
-	            .then(function (data) {
+	            LoginService.getuserinfo().then(function (data) {
 	                vm.username = data.username;
 	                vm.isLogged = data.islogged;
 	                vm.isAdmin = data.isadmin;
 	                vm.changeCC = data.changeCC;
 	                vm.createSubscr = data.createSubscr;
 
-	/*  2016-09-13  
-	                if (vm.createSubscr)
-	                {
-	                    ActivateProposal('Not yet, show me 10 free records first', 15000);
-	                }
-	*/
-
-
-
+	                /*  2016-09-13  
+	                                if (vm.createSubscr)
+	                                {
+	                                    ActivateProposal('Not yet, show me 10 free records first', 15000);
+	                                }
+	                */
 	            });
 
-
-	            GetResultsFactory.getCounters()
-	            .then(function (data) {
+	            GetResultsFactory.getCounters().then(function (data) {
 	                vm._count = data.count;
 	                vm._leftcount = data.leftcount;
 	                vm._invoiceid = data.invoiceid;
 	                vm._demo = JSON.parse(data.demo.toLowerCase());
 	                vm.isLoaded = true;
 
-
 	                //            $scope.getPage(1, $scope.gridOptions.paginationPageSize, $scope.rbOmits, true)
-	                vm.getPage(1, vm.gridOptions.paginationPageSize, true)
-	                .then(
-	                    function () {
+	                vm.getPage(1, vm.gridOptions.paginationPageSize, true).then(function () {
 
-	                        //<>                        return;   //?????/
+	                    //<>                        return;   //?????/
 
-	                        /*
-	                                                var _stmp = localStorageService.get(_name_for_save);
-	                                                if (_stmp != null)
-	                                                    $scope.gridApi.saveState.restore($scope, angular.fromJson(_stmp));
-	                        */
+	                    /*
+	                                            var _stmp = localStorageService.get(_name_for_save);
+	                                            if (_stmp != null)
+	                                                $scope.gridApi.saveState.restore($scope, angular.fromJson(_stmp));
+	                    */
 
-
-
-	       // agi 23.3.2016                 if ($localStorage[_name_for_save]) vm.gridApi.saveState.restore($scope, $localStorage[_name_for_save]);
+	                    // agi 23.3.2016                 if ($localStorage[_name_for_save]) vm.gridApi.saveState.restore($scope, $localStorage[_name_for_save]);
 
 
+	                    vm.gridApi.core.on.columnVisibilityChanged($scope, function (column) {
+	                        //                                var _stmp = angular.toJson($scope.gridApi.saveState.save());
+	                        //                                localStorageService.set(_name_for_save, _stmp);
+	                        $localStorage[_name_for_save] = vm.gridApi.saveState.save();
+	                    });
 
-	                        vm.gridApi.core.on.columnVisibilityChanged($scope,
-	                            function (column) {
-	                                //                                var _stmp = angular.toJson($scope.gridApi.saveState.save());
-	                                //                                localStorageService.set(_name_for_save, _stmp);
-	                                $localStorage[_name_for_save] = vm.gridApi.saveState.save();
+	                    GetResultsFactory.setdemoviewedflag();
 
-	                            });
-
-	                        GetResultsFactory.setdemoviewedflag();
-
-	                        return;
-
-	                    }
-	                    );
-
-
+	                    return;
+	                });
 	            });
-
-
-
-
-
-
-
-
-
-
 	        }
 
-
-	        function ActivateProposal(_cancel_label,_timeout)
-	        {
-	//            if (vm.proposalOpened) return;
+	        function ActivateProposal(_cancel_label, _timeout) {
+	            //            if (vm.proposalOpened) return;
 	            $timeout.cancel(vm._timer);
-	            vm._timer = $timeout(
-	                function ()
-	                {
-	//                    vm.proposalOpened = true;
-	                    ToolsService.ActivateDialog(_cancel_label);
-	                    $timeout.cancel(vm._timer);
-	                }
-	                , _timeout);
+	            vm._timer = $timeout(function () {
+	                //                    vm.proposalOpened = true;
+	                ToolsService.ActivateDialog(_cancel_label);
+	                $timeout.cancel(vm._timer);
+	            }, _timeout);
 	        }
-
 	    };
 	    _controller.$inject = ["$q", "$scope", "$localStorage", "$sessionStorage", "$timeout", "$http", "$state", "_", "FFD_CONST", "toaster", "uiGridConstants", "uiGridPaginationService", "LoginService", "InfoFactory", "ChoicesFactory", "GetResultsFactory", "PreviewDataService", "GoogleGeoService", "ToolsService"];
 
-
-
 	    return _controller;
-
-	}
+	};
 
 /***/ },
 /* 177 */
@@ -54572,27 +52733,22 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    app.directive('previewDataMobile', _directive);
 
-	    function _directive()
-	    {
-	        var _res =
-	        {
+	    function _directive() {
+	        var _res = {
 	            restrict: 'E',
 	            replace: true,
-	            template: __webpack_require__(178)
-	            ,controller: __webpack_require__(179)(app)
-	            ,controllerAs: 'vm'
+	            template: __webpack_require__(178),
+	            controller: __webpack_require__(179)(app),
+	            controllerAs: 'vm'
 	        };
 
 	        return _res;
 	    }
-
-
-	}
+	};
 
 /***/ },
 /* 178 */
@@ -54606,24 +52762,11 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-
 	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	    var _controller = function (
-
-	        $scope, $localStorage, $sessionStorage, $timeout, $http, $state, _,
-	        FFD_CONST, toaster,
-
-	        uiGridConstants, uiGridPaginationService,
-	        LoginService,
-	        InfoFactory, ChoicesFactory,
-	          GetResultsFactory,
-	          PreviewDataService,
-	          GoogleGeoService
-	        ) {
+	    var _controller = function _controller($scope, $localStorage, $sessionStorage, $timeout, $http, $state, _, FFD_CONST, toaster, uiGridConstants, uiGridPaginationService, LoginService, InfoFactory, ChoicesFactory, GetResultsFactory, PreviewDataService, GoogleGeoService) {
 
 	        /*  tst-point */
 
@@ -54639,11 +52782,11 @@ webpackJsonp([0],[
 	        var cntrecords = 0;
 	        var _name_for_save = _settings.name_for_save;
 
-
 	        //        vm.onexit = function () { vm.saveState(); };
 	        //        $state.get('previewestimatedbusinessgrid').onExit = vm.onexit;
-	        $state.current.onExit = function () { vm.saveState(); };
-
+	        $state.current.onExit = function () {
+	            vm.saveState();
+	        };
 
 	        //        $scope.rbOmits = true;
 	        vm._demo = false;
@@ -54652,9 +52795,6 @@ webpackJsonp([0],[
 	        vm._invoiceid = 0;
 	        vm.isLoaded = false;
 	        vm.isDataLoaded = false;
-
-
-
 
 	        vm.gridOptions = {
 	            paginationTemplate: "ui-grid/pagination-z"
@@ -54666,7 +52806,6 @@ webpackJsonp([0],[
 	        vm.gridOptions.showGridFooter = false;
 	        vm.gridOptions.enablePaginationControls = false;
 
-
 	        vm.gridOptions.EnableSelectAll = true;
 	        vm.gridOptions.enableRowSelection = true;
 	        vm.gridOptions.multiSelect = true;
@@ -54674,102 +52813,92 @@ webpackJsonp([0],[
 	        vm.gridOptions.showColumnFooter = false;
 	        vm.gridOptions.fastWatch = true;
 
-
 	        vm.gridOptions.enablePaging = true;
 	        vm.gridOptions.paginationPageSizes = [5, 10, 25, 50, 75, 100, 200];
 	        vm.gridOptions.paginationPageSize = 10;
 	        vm.gridOptions.useExternalPagination = true;
 
-
 	        vm.gridOptions.columnDefs = _settings.coldefs;
 
-	        vm.gridOptions.rowIdentity = function (row) { return row.ClientID; };
-	        vm.gridOptions.getRowIdentity = function (row) { return row.ClientID; };
+	        vm.gridOptions.rowIdentity = function (row) {
+	            return row.ClientID;
+	        };
+	        vm.gridOptions.getRowIdentity = function (row) {
+	            return row.ClientID;
+	        };
 
 	        vm.gridOptions.onRegisterApi = function (gridApi) {
 	            console.log('onRegisterApi');
 
 	            vm.gridApi = gridApi;
 
-
-
 	            gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
 	                console.log('paginationChanged');
-	                if (vm.getPage) { vm.getPage(newPage, pageSize, false); }
+	                if (vm.getPage) {
+	                    vm.getPage(newPage, pageSize, false);
+	                }
 	            });
 
+	            gridApi.selection.on.rowSelectionChanged($scope, function (rows) {
+	                console.log('rowSelectionChanged');
+	                $timeout(function () {
+	                    _save_page();
+	                });
+	            });
 
-	            gridApi.selection.on.rowSelectionChanged($scope,
-	                function (rows) {
-	                    console.log('rowSelectionChanged');
-	                    $timeout(function () { _save_page(); });
-	                }
-	                );
-
-
-
-	            gridApi.selection.on.rowSelectionChangedBatch($scope,
-	                function (rows) {
-	                    console.log('rowSelectionChangedBatch');
-	                    $timeout(function () { _save_page(); vm.getselected(); });
-	                }
-	                );
-
-
-
+	            gridApi.selection.on.rowSelectionChangedBatch($scope, function (rows) {
+	                console.log('rowSelectionChangedBatch');
+	                $timeout(function () {
+	                    _save_page();vm.getselected();
+	                });
+	            });
 
 	            gridApi.grid.registerDataChangeCallback(function (data) {
 	                console.log('registerDataChangeCallback');
-	                $timeout(function () { _rest_page(); });
-	            }
-	            , [uiGridConstants.dataChange.ALL]
-	            );
+	                $timeout(function () {
+	                    _rest_page();
+	                });
+	            }, [uiGridConstants.dataChange.ALL]);
 
 	            activate();
 	            vm.SelectAll();
-
-
 	        };
 
 	        vm.new_search = function () {
 	            ChoicesFactory.clear_choices();
 	            $state.go("search");
-	        }
+	        };
 
 	        vm.SelectAll = function () {
 	            vm._SelAll = true;
 	            vm._SelArr = [];
 	            vm.gridApi.selection.selectAllRows();
-	        }
+	        };
 
 	        vm.UnSelectAll = function () {
 	            vm._SelAll = false;
 	            vm._SelArr = [];
 	            vm.gridApi.selection.clearSelectedRows();
-	        }
+	        };
 
-	        vm.enablelist = function ()
-	        {
-	//            vm._enablelist = (vm._invoiceid == 0) || ((vm._selected > 0) && (vm._leftcount >= vm._selected));
-	            vm._enablelist = (vm._invoiceid == 0) || ((vm._selected > 0));
+	        vm.enablelist = function () {
+	            //            vm._enablelist = (vm._invoiceid == 0) || ((vm._selected > 0) && (vm._leftcount >= vm._selected));
+	            vm._enablelist = vm._invoiceid == 0 || vm._selected > 0;
 	        };
 
 	        vm.getselected = function () {
-	            vm._selected = vm._SelAll ? (vm.gridOptions.totalItems - vm._SelArr.length) : vm._SelArr.length;
+	            vm._selected = vm._SelAll ? vm.gridOptions.totalItems - vm._SelArr.length : vm._SelArr.length;
 	        };
-
 
 	        function _save_page() {
 	            if (vm.gridApi.grid.rows.length == 0) return;
-
 
 	            var _sel_rows = _.map(vm.gridApi.selection.getSelectedGridRows(), "entity.ClientID");
 	            var _all_rows = _.map(vm.gridApi.grid.rows, "entity.ClientID");
 	            var _unsel_rows = _.difference(_all_rows, _sel_rows);
 	            if (vm._SelAll) {
 	                vm._SelArr = _.union(_.difference(vm._SelArr, _all_rows), _unsel_rows);
-	            }
-	            else {
+	            } else {
 	                vm._SelArr = _.union(_.difference(vm._SelArr, _all_rows), _sel_rows);
 	            }
 	        }
@@ -54779,22 +52908,18 @@ webpackJsonp([0],[
 
 	            vm.gridApi.selection.clearSelectedRows();
 
-	            _.forEach(
-	                vm.gridApi.grid.rows,
-	                function (item, indx) {
-	                    if (_.indexOf(vm._SelArr, item.entity.ClientID) < 0)
-	                    { if (vm._SelAll) vm.gridApi.selection.selectRow(item.entity); }
-	                    else
-	                    { if (!vm._SelAll) vm.gridApi.selection.selectRow(item.entity); }
-	                });
-
+	            _.forEach(vm.gridApi.grid.rows, function (item, indx) {
+	                if (_.indexOf(vm._SelArr, item.entity.ClientID) < 0) {
+	                    if (vm._SelAll) vm.gridApi.selection.selectRow(item.entity);
+	                } else {
+	                    if (!vm._SelAll) vm.gridApi.selection.selectRow(item.entity);
+	                }
+	            });
 	        }
-
 
 	        vm.getPage = function (_page, _size, _init) {
 	            var promise = PreviewDataService.getPage(_page, _size, _init);
-	            promise.then(
-	            function (data) {
+	            promise.then(function (data) {
 	                vm.gridOptions.totalItems = data.cntrecords;
 	                //                vm._records = _.col13dig2date(data.records);
 	                //                vm.gridOptions.data = _.col13dig2date(data.records);
@@ -54802,22 +52927,15 @@ webpackJsonp([0],[
 	                //                vm.gridOptions.data = data.records;
 	                vm.gridOptions.data = _.col13dig2date(data.records);
 
-
 	                var _len = vm.gridOptions.data.length;
 	                vm.gridOptions.minRowsToShow = _len + 3;
 
-
 	                vm.line_1st = (vm.gridOptions.paginationCurrentPage - 1) * vm.gridOptions.paginationPageSize + 1;
 	                vm.line_last = Math.min(vm.gridOptions.totalItems, vm.gridOptions.paginationCurrentPage * vm.gridOptions.paginationPageSize);
-
-
 	            });
 
 	            return promise;
 	        };
-
-
-
 
 	        vm.dynamicMarkers = [];
 	        var map;
@@ -54830,35 +52948,25 @@ webpackJsonp([0],[
 	                data: { _ids: vm._SelArr, _selectall: vm._SelAll }
 	            });
 
+	            request.success(function (data, status, headers, config) {
+	                console.log(data);
+	                if (data.d.result == "OK") {
+	                    GoogleGeoService.ShowMap(data.d.mapdata);
+	                }
+	                if (data.d.result == "ERROR" && data.d.errmsg) {
+	                    toaster.pop('error', data.d.errmsg);
+	                }
+	            });
+	        };
 
-	            request
-	            .success(
-	                        function (data, status, headers, config) {
-	                            console.log(data);
-	                            if (data.d.result == "OK") {
-	                                GoogleGeoService.ShowMap(data.d.mapdata);
-	                            }
-	                            if (data.d.result == "ERROR" && data.d.errmsg) {
-	                                toaster.pop('error', data.d.errmsg);
-	                            }
-	                        }
-	                    );
+	        vm.getlist = function () {
 
-	        }
-
-
-
-	        vm.getlist = function ()
-	        {
-
-	            if (vm._leftcount < vm._selected)
-	            {
+	            if (vm._leftcount < vm._selected) {
 	                var _message = "This download will exceed your 5,000 record monthly allotment. Please adjust your quantity and try again";
-	//                toaster.pop('info', _message);
+	                //                toaster.pop('info', _message);
 	                toaster.pop({ type: 'info', body: _message, timeout: 0 });
 	                return;
 	            }
-
 
 	            var request = $http({
 	                method: "post",
@@ -54866,8 +52974,7 @@ webpackJsonp([0],[
 	                data: { _ids: vm._SelArr, _selectall: vm._SelAll }
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                console.log(data);
 	                if (data.d.result == "OK") {
 	                    vm._leftcount = data.d.userleftcount;
@@ -54883,32 +52990,19 @@ webpackJsonp([0],[
 	                    anchor.appendTo('body');
 
 	                    vm.isDataLoaded = true;
-
 	                }
-	            })
-	            .error(function (data, status, headers, config) { });
-
-
-
-
-
-
+	            }).error(function (data, status, headers, config) {});
 	        };
 
+	        vm.getlistbyemail = function () {
 
-
-	        vm.getlistbyemail = function ()
-	        {
-
-	//            if (vm._leftcount < vm._selected)
-	            if ((!vm.createSubscr) && (vm._leftcount < vm.choices._count_Data))
-	            {
+	            //            if (vm._leftcount < vm._selected)
+	            if (!vm.createSubscr && vm._leftcount < vm.choices._count_Data) {
 	                var _message = "This download will exceed your 5,000 record monthly allotment. Please adjust your quantity and try again";
-	//                toaster.pop('info', _message);
+	                //                toaster.pop('info', _message);
 	                toaster.pop({ type: 'info', body: _message, timeout: 0 });
 	                return;
 	            }
-
 
 	            var request = $http({
 	                method: "post",
@@ -54918,28 +53012,20 @@ webpackJsonp([0],[
 
 	            });
 
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                console.log(data);
 	                if (data.d.result == "OK") {
 	                    vm._leftcount = data.d.userleftcount;
 	                    toaster.pop('success', data.d.message);
 	                    vm.isDataLoaded = true;
-
 	                }
 	                if (data.d.result == "ERROR" && data.d.errmsg) {
 	                    toaster.pop('error', data.d.errmsg);
 	                }
-	            })
-	            .error(function (data, status, headers, config) {
+	            }).error(function (data, status, headers, config) {
 	                var aa = 66;
 	            });
 	        };
-
-
-
-
-
 
 	        vm.state = {};
 
@@ -54953,31 +53039,22 @@ webpackJsonp([0],[
 	            vm.gridApi.saveState.restore(vm, vm.state);
 	        };
 
-
 	        vm.gridData = [];
-
 
 	        function activate() {
 
 	            $scope.$watch(vm.getselected);
 	            $scope.$watch(vm.enablelist);
 
-
 	            /*
 	            var _stmp = $sessionStorage['searchform'];
 	            if (_stmp == null) return;
-
-	            var _tmp = angular.fromJson(_stmp);
-
-	            $scope.id = _tmp.choices["bustype"]["id"];
-
-	            GetResultsFactory.getCounters(_tmp.choices)
+	              var _tmp = angular.fromJson(_stmp);
+	              $scope.id = _tmp.choices["bustype"]["id"];
+	              GetResultsFactory.getCounters(_tmp.choices)
 	            */
 
-
-
-	            LoginService.getuserinfo()
-	            .then(function (data) {
+	            LoginService.getuserinfo().then(function (data) {
 	                vm.username = data.username;
 	                vm.isLogged = data.islogged;
 	                vm.isAdmin = data.isadmin;
@@ -54985,64 +53062,42 @@ webpackJsonp([0],[
 	                vm.createSubscr = data.createSubscr;
 	            });
 
-
-
-
-	            GetResultsFactory.getCounters()
-	            .then(function (data) {
+	            GetResultsFactory.getCounters().then(function (data) {
 	                vm._count = data.count;
 	                vm._leftcount = data.leftcount;
 	                vm._invoiceid = data.invoiceid;
 	                vm._demo = JSON.parse(data.demo.toLowerCase());
 	                vm.isLoaded = true;
 
-
 	                //            $scope.getPage(1, $scope.gridOptions.paginationPageSize, $scope.rbOmits, true)
-	                vm.getPage(1, vm.gridOptions.paginationPageSize, true)
-	                .then(
-	                    function () {
+	                vm.getPage(1, vm.gridOptions.paginationPageSize, true).then(function () {
 
-	                        //<>                        return;   //?????/
+	                    //<>                        return;   //?????/
 
-	                        /*
-	                                                var _stmp = localStorageService.get(_name_for_save);
-	                                                if (_stmp != null)
-	                                                    $scope.gridApi.saveState.restore($scope, angular.fromJson(_stmp));
-	                        */
-	                        if ($localStorage[_name_for_save]) vm.gridApi.saveState.restore($scope, $localStorage[_name_for_save]);
+	                    /*
+	                                            var _stmp = localStorageService.get(_name_for_save);
+	                                            if (_stmp != null)
+	                                                $scope.gridApi.saveState.restore($scope, angular.fromJson(_stmp));
+	                    */
+	                    if ($localStorage[_name_for_save]) vm.gridApi.saveState.restore($scope, $localStorage[_name_for_save]);
 
+	                    vm.gridApi.core.on.columnVisibilityChanged($scope, function (column) {
+	                        //                                var _stmp = angular.toJson($scope.gridApi.saveState.save());
+	                        //                                localStorageService.set(_name_for_save, _stmp);
+	                        $localStorage[_name_for_save] = vm.gridApi.saveState.save();
+	                    });
 
+	                    GetResultsFactory.setdemoviewedflag();
 
-	                        vm.gridApi.core.on.columnVisibilityChanged($scope,
-	                            function (column) {
-	                                //                                var _stmp = angular.toJson($scope.gridApi.saveState.save());
-	                                //                                localStorageService.set(_name_for_save, _stmp);
-	                                $localStorage[_name_for_save] = vm.gridApi.saveState.save();
-
-	                            });
-
-	                        GetResultsFactory.setdemoviewedflag();
-
-	                        return;
-
-	                    }
-	                    );
-
-
+	                    return;
+	                });
 	            });
 	        }
-
-
-
-
 	    };
 	    _controller.$inject = ["$scope", "$localStorage", "$sessionStorage", "$timeout", "$http", "$state", "_", "FFD_CONST", "toaster", "uiGridConstants", "uiGridPaginationService", "LoginService", "InfoFactory", "ChoicesFactory", "GetResultsFactory", "PreviewDataService", "GoogleGeoService"];
 
-
-
 	    return _controller;
-
-	}
+	};
 
 /***/ },
 /* 180 */
@@ -55062,35 +53117,27 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	 __webpack_require__(183);
+	__webpack_require__(183);
 
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
 
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
 
-	                //                'content@root': { template: require('./content.tpl.html'), controller: require('./LoginController.js')(app), controllerAs: 'vm' }
+	            //                'content@root': { template: require('./content.tpl.html'), controller: require('./LoginController.js')(app), controllerAs: 'vm' }
 
-	                  'content@root': { template: __webpack_require__(185), controller: __webpack_require__(186)(app), controllerAs: 'vm' }
-	    };
+	            'content@root': { template: __webpack_require__(185), controller: __webpack_require__(186)(app), controllerAs: 'vm' }
+	        };
 	        $stateProvider.state('login', { parent: 'root', url: 'login', views: _views });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 183 */
@@ -55111,14 +53158,11 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    /* @ngInject */
 
-
-	    var _controller = function ($scope, $state,$timeout, $stateParams, toaster, LoginService, $sessionStorage)
-	    {
+	    var _controller = function _controller($scope, $state, $timeout, $stateParams, toaster, LoginService, $sessionStorage) {
 
 	        var vm = this;
 
@@ -55131,168 +53175,121 @@ webpackJsonp([0],[
 	        vm.cancel_state = LoginService.cancel_state || 'home';
 	        vm.cancel_params = LoginService.cancel_params;
 
+	        $timeout(function () {
+	            angular.element('input[disabled]').each(function () {
+	                angular.element(this).removeAttr('disabled');
+	            });
+	        }, 3000);
 
+	        vm.logindata = {
 
-	        $timeout(function () { angular.element('input[disabled]').each(function () { angular.element(this).removeAttr('disabled'); }); }, 3000);
+	            username: "",
+	            password: "",
 
+	            supressAnotherSession: false,
+	            anotherSession_visible: false
+	        };
 
-
-	        vm.logindata =
-	            {
-	               
-	                username: "",
-	                password: "",
-	              
-	                supressAnotherSession: false,
-	                anotherSession_visible: false
-	            };
-
-	        vm.loginFields =
-	            [
-
-
-	            {
-	                key: 'username',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'User Name',
-	                    placeholder: 'Enter User Name'
-	//                    ,minlength: 4
-	                    ,maxlength: 25
-	                    , required: true
-	                    ,disabled: true
-	                }
-	            },
-
-
-	            {
-	                key: 'password',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'password',
-	                    label: 'Password',
-	                    placeholder: 'Enter Password',
-	                    required: true,
-	                    minlength: 6,
-	                    maxlength: 20
-	                    ,disabled: true
-	                }
+	        vm.loginFields = [{
+	            key: 'username',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'User Name',
+	                placeholder: 'Enter User Name'
+	                //                    ,minlength: 4
+	                , maxlength: 25,
+	                required: true,
+	                disabled: true
 	            }
-
-	            /*
-	            , {
-	                key: 'supressAnotherSession',
-	                type: "bs4-horizontalInput",
-	                templateOptions:
-	                    {
-	                        type: 'checkbox',
-	                        label: 'You already have an active connection. Disconnect other connection and login?'
-	                    }
+	        }, {
+	            key: 'password',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'password',
+	                label: 'Password',
+	                placeholder: 'Enter Password',
+	                required: true,
+	                minlength: 6,
+	                maxlength: 20,
+	                disabled: true
 	            }
-	            */
+	        }
 
-	            /*
-	            , {
-	                key: 'anotherSession',
-	                type: 'bs4-horizontalCheckBox',
-	                templateOptions:
-	                    {
-	                        type: 'checkbox',
-	                        label: 'another session'
-	                    }
-	            }
-	            */
-
-	            /*
-	            , {
-	                key: 'supressAnotherSession',
-	                type: 'bs4-horizontalCheckBox',
-	                templateOptions:
-	                    {
-	                        type: 'checkbox',
-	                        label: 'You already have an active connection. Disconnect other connection and login?'
-	                    },
-	                hideExpression: '!logindata.anotherSession'
-	//                hideExpression: 'false'
-	            }
-
-	            */
-
-
-
-
-
-
-
-
-
-	            ];
-
-
-
-
-
-
-
-
-
-	        vm.login = function ($event)
-	        {
-	            $event.preventDefault();
-	            LoginService.login(vm.logindata.username, vm.logindata.password, vm.logindata.supressAnotherSession)
-
-	            .then(
-	            function (data) {
-	                if ((data.result != 'OK') && data.AnotherActiveSession)
+	        /*
+	        , {
+	            key: 'supressAnotherSession',
+	            type: "bs4-horizontalInput",
+	            templateOptions:
 	                {
+	                    type: 'checkbox',
+	                    label: 'You already have an active connection. Disconnect other connection and login?'
+	                }
+	        }
+	        */
+
+	        /*
+	        , {
+	            key: 'anotherSession',
+	            type: 'bs4-horizontalCheckBox',
+	            templateOptions:
+	                {
+	                    type: 'checkbox',
+	                    label: 'another session'
+	                }
+	        }
+	        */
+
+	        /*
+	        , {
+	            key: 'supressAnotherSession',
+	            type: 'bs4-horizontalCheckBox',
+	            templateOptions:
+	                {
+	                    type: 'checkbox',
+	                    label: 'You already have an active connection. Disconnect other connection and login?'
+	                },
+	            hideExpression: '!logindata.anotherSession'
+	        //                hideExpression: 'false'
+	        }
+	          */
+
+	        ];
+
+	        vm.login = function ($event) {
+	            $event.preventDefault();
+	            LoginService.login(vm.logindata.username, vm.logindata.password, vm.logindata.supressAnotherSession).then(function (data) {
+	                if (data.result != 'OK' && data.AnotherActiveSession) {
 	                    vm.logindata.anotherSession_visible = true;
 	                    return;
 	                }
 
-
-	                if ((data.result != 'OK') && data.message) {
+	                if (data.result != 'OK' && data.message) {
 	                    toaster.pop('error', data.message);
 	                    return;
 	                }
 
-	                if (data.result == 'OK')
-	                {
-	                    LoginService.getuserinfo()
-	                    .then(function (data) {
-	                        if (data.islogged)
-	                        {
-	                            $state.go(vm.success_state,vm.success_params);
-	                        }
-	                        else {
+	                if (data.result == 'OK') {
+	                    LoginService.getuserinfo().then(function (data) {
+	                        if (data.islogged) {
+	                            $state.go(vm.success_state, vm.success_params);
+	                        } else {
 	                            toaster.pop('error', "Incorrect login or password ... ");
 	                        }
-
 	                    });
 	                }
-	            }
-
-	            );
+	            });
 	        };
 
-
-
-	        vm.go_cancel = function ($event)
-	        {
+	        vm.go_cancel = function ($event) {
 	            $event.preventDefault();
 	            $state.go(vm.cancel_state, vm.cancel_params);
-	        }
-
-	    }
+	        };
+	    };
 	    _controller.$inject = ["$scope", "$state", "$timeout", "$stateParams", "toaster", "LoginService", "$sessionStorage"];
 
-
-
-
 	    return _controller;
-
-
-	}
+	};
 
 /***/ },
 /* 187 */
@@ -55304,29 +53301,21 @@ webpackJsonp([0],[
 
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
 
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
 
-	                'content@root': { template: __webpack_require__(188), controller: __webpack_require__(189)(app)  , controllerAs: 'vm'  }
-	    };
+	            'content@root': { template: __webpack_require__(188), controller: __webpack_require__(189)(app), controllerAs: 'vm' }
+	        };
 	        $stateProvider.state('resetpassword', { parent: 'root', url: 'resetpassword', views: _views });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 188 */
@@ -55340,68 +53329,49 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	    function ResetPasswordController($scope, $state, toaster, LoginService)
-	    {
+	    function ResetPasswordController($scope, $state, toaster, LoginService) {
 
-	        $scope.resetpassword = function ($event)
-	        {
+	        $scope.resetpassword = function ($event) {
 	            $event.preventDefault();
 
-	//            LoginService.changepassword(vm.data.old_password, vm.data.new_password)
-	            LoginService.resetpassword(vm.data.email)
-	            .then(function (data) {
-	                if (data.result == 'ERROR')
-	                {
+	            //            LoginService.changepassword(vm.data.old_password, vm.data.new_password)
+	            LoginService.resetpassword(vm.data.email).then(function (data) {
+	                if (data.result == 'ERROR') {
 	                    toaster.pop('error', data.message);
 	                }
-	                if (data.result == 'OK')
-	                {
+	                if (data.result == 'OK') {
 	                    var _message = 'New password has been sent to ' + vm.data.email;
-	                    toaster.pop('success', _message );
+	                    toaster.pop('success', _message);
 	                    $state.go('home');
 	                }
-
-
 	            });
 	        };
-
 
 	        var vm = this;
 	        vm.data = {};
 
+	        vm.dataFields = [{
+	            key: 'email',
+	            type: 'bs4Input', // "horizontalInput",
+	            templateOptions: {
+	                type: 'email',
+	                label: 'Email address',
+	                placeholder: 'Enter email',
+	                required: true,
+	                //                    minlength: 10,
+	                maxlength: 40
 
-	        vm.dataFields =
-	            [
-	            {
-	                key: 'email',
-	                type: 'bs4Input',           // "horizontalInput",
-	                templateOptions: {
-	                    type: 'email',
-	                    label: 'Email address',
-	                    placeholder: 'Enter email',
-	                    required: true,
-	//                    minlength: 10,
-	                    maxlength: 40
-
-	                }
 	            }
-
-	            ];
-
+	        }];
 	    }
 	    ResetPasswordController.$inject = ["$scope", "$state", "toaster", "LoginService"];
 
-
-
 	    return ResetPasswordController;
-
-
-	}
+	};
 
 /***/ },
 /* 190 */
@@ -55413,46 +53383,32 @@ webpackJsonp([0],[
 
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
 
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(191), controller: __webpack_require__(192)(app), controllerAs: 'vm' }
-	            };
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(191), controller: __webpack_require__(192)(app), controllerAs: 'vm' }
+	        };
 	        $stateProvider.state('register', { parent: 'root', url: 'register', views: _views });
 
-
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(193) }
-	            };
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(193) }
+	        };
 	        $stateProvider.state('registersuccess', { parent: 'root', url: 'registersuccess', views: _views });
 
-
-
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(194), controller: __webpack_require__(195)(app), controllerAs: 'vm' }
-	            };
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(194), controller: __webpack_require__(195)(app), controllerAs: 'vm' }
+	        };
 	        $stateProvider.state('confirmregister', { parent: 'root', url: 'confirmregister/', params: { memberID: null }, views: _views });
-
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 191 */
@@ -55466,11 +53422,9 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    /* @ngInject */
-
 
 	    function toUpperCase(value) {
 	        return (value || '').toUpperCase();
@@ -55481,16 +53435,15 @@ webpackJsonp([0],[
 	        return (value || '').toLowerCase();
 	    }
 
-
-
-	    function RegisterController( $scope, $timeout, $state, $http, $filter, $sessionStorage, LoginService, toaster)
-	    {
+	    function RegisterController($scope, $timeout, $state, $http, $filter, $sessionStorage, LoginService, toaster) {
 
 	        var vm = this;
 
 	        vm.breakpoint = {};
 
-	        $scope.$watch('vm.breakpoint.xs || vm.breakpoint.sm', function () { vm.regdata.mobile = vm.breakpoint.xs || vm.breakpoint.sm; });
+	        $scope.$watch('vm.breakpoint.xs || vm.breakpoint.sm', function () {
+	            vm.regdata.mobile = vm.breakpoint.xs || vm.breakpoint.sm;
+	        });
 
 	        vm.adduser = function ($event) {
 	            //            vm.options.updateInitialValue();
@@ -55500,60 +53453,41 @@ webpackJsonp([0],[
 	            //            localStorageService.set('_regdata', angular.toJson(vm.regdata));
 	            $sessionStorage["_regdata"] = vm.regdata;
 
-	            LoginService.createuser(vm.regdata)
-	            .then(function (data) {
+	            LoginService.createuser(vm.regdata).then(function (data) {
 	                if (data.result == 'ERROR') {
 	                    toaster.pop('error', data.message);
 	                }
 	                if (data.result == 'OK') {
 	                    $state.go('registersuccess');
 	                }
-
-
 	            });
 	        };
 
-
 	        //        var vm = this;
 
-	        vm.countries =
-	             [
-	             { id: 1, name: "United States" },
-	             { id: 2, name: "Canada" }
-	             ];
+	        vm.countries = [{ id: 1, name: "United States" }, { id: 2, name: "Canada" }];
 
-	        vm.businesSes =
-	              [
-	              { name: "How large is your business?", value: "" },
-	              { name: "MICRO BUSINESS", value: "MICRO BUSINESS" },
-	              { name: "HOME BASE BUSINESS", value: "HOME BASE BUSINESS" },
-	              { name: "SMALL BUSINESS", value: "SMALL BUSINESS" },
-	              { name: "LARGE BUSINESS", value: "LARGE BUSINESS" }
-	              ];
+	        vm.businesSes = [{ name: "How large is your business?", value: "" }, { name: "MICRO BUSINESS", value: "MICRO BUSINESS" }, { name: "HOME BASE BUSINESS", value: "HOME BASE BUSINESS" }, { name: "SMALL BUSINESS", value: "SMALL BUSINESS" }, { name: "LARGE BUSINESS", value: "LARGE BUSINESS" }];
 
+	        vm.regdata = {
+	            CompanyName: '',
+	            Title: null,
+	            Address: '',
+	            City: '',
+	            State: '',
+	            Zip: '',
+	            Country: '',
+	            PhoneNumber: '',
+	            HearOfUs: '',
+	            BusinessType: '',
+	            Message: null
 
-
-	        vm.regdata =
-	            {
-	                CompanyName: '',
-	                Title: null,
-	                Address: '',
-	                City: '',
-	                State: '',
-	                Zip: '',
-	                Country: '',
-	                PhoneNumber: '',
-	                HearOfUs: '',
-	                BusinessType: '',
-	                Message: null
-
-	            };
+	        };
 
 	        vm.options = { removeChromeAutoComplete: true };
 	        var internalState = {
 	            FirstName: ''
 	        };
-
 
 	        //        var _stmp = localStorageService.get('_regdata');
 	        //        if (_stmp != null) vm.regdata = angular.fromJson(_stmp);
@@ -55566,96 +53500,74 @@ webpackJsonp([0],[
 	            return (value || '').toUpperCase();
 	        }
 
+	        vm.regdataFields = [{
+	            key: 'FirstName',
+	            type: "bs4-horizontalInput",
 
-
-	        vm.regdataFields =
-	            [
-	                
-
-
-	            {
-	                key: 'FirstName',
-	                type: "bs4-horizontalInput",
-
-	                /*
-	                modelOptions: { getterSetter: true },
-	                value: function (val) {
-	                    if (angular.isDefined(val))
-	                    {
-	                        vm.regdata.FirstName = $filter('capitalize')((val || ''));
-	                    }
-	                    return $filter('capitalize')(vm.regdata.FirstName||'');
-	                },
-	                */
-
-
-	                //                extras:{ validateOnModelChange: true},
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'First Name',
-	                    placeholder: 'Enter First Name',
-	                    //                    minlength: 5,
-	                    maxlength: 25,
-	                    required: true
+	            /*
+	            modelOptions: { getterSetter: true },
+	            value: function (val) {
+	                if (angular.isDefined(val))
+	                {
+	                    vm.regdata.FirstName = $filter('capitalize')((val || ''));
 	                }
+	                return $filter('capitalize')(vm.regdata.FirstName||'');
+	            },
+	            */
 
+	            //                extras:{ validateOnModelChange: true},
+	            templateOptions: {
+	                type: 'text',
+	                label: 'First Name',
+	                placeholder: 'Enter First Name',
+	                //                    minlength: 5,
+	                maxlength: 25,
+	                required: true
+	            },
 
-	                , watcher: {
-	                    listener: function (field, newValue, oldValue, scope, stopWatching) {
-	                        if (newValue) {
-	                            vm.regdata.FirstName = $filter('capitalize')((newValue || ''));
-	                            console.log('Default Expression: ' + newValue);
-	                        }
+	            watcher: {
+	                listener: function listener(field, newValue, oldValue, scope, stopWatching) {
+	                    if (newValue) {
+	                        vm.regdata.FirstName = $filter('capitalize')(newValue || '');
+	                        console.log('Default Expression: ' + newValue);
 	                    }
 	                }
+	            }
 
-
-
-	                //                ,parsers: [toUpperCase]
-	                //                ,formatters: [toUpperCase]
+	            //                ,parsers: [toUpperCase]
+	            //                ,formatters: [toUpperCase]
+	        }, {
+	            key: 'LastName',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Last Name',
+	                placeholder: 'Enter Last Name',
+	                //                    minlength: 5,
+	                maxlength: 25,
+	                required: true
 	            },
-
-	            {
-	                key: 'LastName',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Last Name',
-	                    placeholder: 'Enter Last Name',
-	                    //                    minlength: 5,
-	                    maxlength: 25,
-	                    required: true
+	            watcher: {
+	                listener: function listener(field, newValue, oldValue, scope, stopWatching) {
+	                    if (newValue) {
+	                        vm.regdata.LastName = $filter('capitalize')(newValue || '');
+	                    }
 	                }
-	                                , watcher: {
-	                                    listener: function (field, newValue, oldValue, scope, stopWatching) {
-	                                        if (newValue) {
-	                                            vm.regdata.LastName = $filter('capitalize')((newValue || ''));
-	                                        }
-	                                    }
-	                                }
+	            }
 
-	            },
+	        }, {
+	            key: 'Email',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'email',
+	                label: 'Email address',
+	                placeholder: 'Enter email',
+	                required: true,
+	                //                    minlength: 10,
+	                maxlength: 80
 
-
-
-
-
-	            {
-	                key: 'Email',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'email',
-	                    label: 'Email address',
-	                    placeholder: 'Enter email',
-	                    required: true,
-	//                    minlength: 10,
-	                    maxlength: 80
-
-	                }
-	            },
-
-
-	        {
+	            }
+	        }, {
 	            key: 'confirmEmail',
 	            type: 'bs4-horizontalInput',
 	            optionsTypes: ['matchField'],
@@ -55667,21 +53579,17 @@ webpackJsonp([0],[
 	                required: true,
 	                //                minlength: 6,
 	                maxlength: 80
-	            }
-	            ,data: {
-	            fieldToMatch: 'Email',
-	            modelToMatch: vm.model
-	                }
-
 	            },
+	            data: {
+	                fieldToMatch: 'Email',
+	                modelToMatch: vm.model
+	            }
 
-
-	            {
+	        }, {
 
 	            key: 'UserName',
 	            type: "bs4-horizontalInput",
-	            templateOptions:
-	            {
+	            templateOptions: {
 	                type: 'text',
 	                label: 'User Name',
 	                placeholder: 'Enter your User name',
@@ -55693,26 +53601,18 @@ webpackJsonp([0],[
 	            //        ,parsers: [toLowerCase]
 	            //        ,formatters: [toUpperCase]
 
-	        },
-
-
-
-
-
-	            {
-	                key: 'Password',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'password',
-	                    label: 'Password',
-	                    placeholder: 'Enter password',
-	                    required: true,
-	                    minlength: 6,
-	                    maxlength: 20
-	                }
-	            },
-
-	        {
+	        }, {
+	            key: 'Password',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'password',
+	                label: 'Password',
+	                placeholder: 'Enter password',
+	                required: true,
+	                minlength: 6,
+	                maxlength: 20
+	            }
+	        }, {
 	            key: 'confirmPassword',
 	            type: 'bs4-horizontalInput',
 	            optionsTypes: ['matchField'],
@@ -55730,203 +53630,168 @@ webpackJsonp([0],[
 	                fieldToMatch: 'Password',
 	                modelToMatch: vm.model
 	            }
-	        },
-
-
-	            {
-	                key: 'Zip',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Zip',
-	                    placeholder: 'Enter Zip',
-	                    required: true
-	                }
-	            },
-
-
-
-	            {
-	                key: 'CompanyName',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Company Name',
-	                    placeholder: 'Enter Company name',
-	                    required: true
-	                },
-	                hideExpression: 'model.mobile'
+	        }, {
+	            key: 'Zip',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Zip',
+	                placeholder: 'Enter Zip',
+	                required: true
 	            }
-
-	    /*
-	        {
-	                key: 'Title',
-	                type: "horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Title',
-	                    placeholder: 'Enter Title',
-	                    required: true
-	                }
+	        }, {
+	            key: 'CompanyName',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Company Name',
+	                placeholder: 'Enter Company name',
+	                required: true
 	            },
-	            */
-
-
-	            /*
-	            {
-	                key: 'Address',
-	                type: "horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Address',
-	                    placeholder: 'Enter Address',
-	                    required: true
-	                }
-	            },
-
-
-
-	            {
-	                key: 'City',
-	                type: "horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'City',
-	                    placeholder: 'Enter City',
-	                    required: true
-	                }
-	            },
-
-
-
-	            {
-	                key: 'State',
-	                type: "horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'State/Province/Region',
-	                    placeholder: 'Enter State/Province/Region',
-	                    required: true
-	                }
-	            },
-
-
-	            {
-	                key: 'Zip',
-	                type: "horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Zip',
-	                    placeholder: 'Enter Zip',
-	                    required: true
-	                }
-	            },
-
-	            {
-	                key: 'Country',
-	                type: 'horizontalSelect',
-	                templateOptions: {
-	                    label: 'Country',
-	                    labelProp: 'name',
-	                    valueProp: 'name',
-	                    options: $scope.countries,
-	                    required: true
-	                }
-	            },
-
-	            {
-	                key: 'PhoneNumber',
-	                type: "horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Phone number',
-	                    placeholder: 'Enter your phone',
-	                    required: true
-	                }
-	            },
-
-	           {
-	               key: 'HearOfUs',
-	               type: 'horizontalTextArea',
-	               templateOptions:
-	                   {
-	                       label: 'How did you hear of us?',
-	                       rows: 5,
-	                       placeholder: 'How did you hear of us?',
-	                       required: true
-	                   }
-	           },
-
-	            ,{
-	                key: 'BusinessType',
-	                type: 'bs4-horizontalSelect',
-	                defaultValue: "",
-	                templateOptions: {
-	                    label: 'How large is your business?',
-	                    labelProp: 'name',
-	                    valueProp: 'value',
-	                    options: vm.businesSes
-	                },
-	                hideExpression: 'model.mobile'
-	            }
-	*/
-
-
-
-
-	            , {
-	                key: 'BusinessType',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Business Type',
-	                    placeholder: 'Enter Business type'
-	                },
-	                hideExpression: 'model.mobile'
-	            }
-
-
-
-	/*
-
-	           {
-	               key: 'captcha',
-	               type: "horizontalCaptcha"
-
-
-	           , validators:
-	        {
-	            xxx: {
-	                expression: function (vVal, mVal, scope) { return scope.check(vVal); },
-	                message: "xxxxxxxxxxx"
-	            }
-
+	            hideExpression: 'model.mobile'
 	        }
 
+	        /*
+	            {
+	                    key: 'Title',
+	                    type: "horizontalInput",
+	                    templateOptions: {
+	                        type: 'text',
+	                        label: 'Title',
+	                        placeholder: 'Enter Title',
+	                        required: true
+	                    }
+	                },
+	                */
 
-	                , templateOptions: {
-	                    label: 'Captcha',
-	                    placeholder: 'Enter 4-digit number'
+	        /*
+	        {
+	            key: 'Address',
+	            type: "horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Address',
+	                placeholder: 'Enter Address',
+	                required: true
+	            }
+	        },
+	              {
+	            key: 'City',
+	            type: "horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'City',
+	                placeholder: 'Enter City',
+	                required: true
+	            }
+	        },
+	              {
+	            key: 'State',
+	            type: "horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'State/Province/Region',
+	                placeholder: 'Enter State/Province/Region',
+	                required: true
+	            }
+	        },
+	            {
+	            key: 'Zip',
+	            type: "horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Zip',
+	                placeholder: 'Enter Zip',
+	                required: true
+	            }
+	        },
+	          {
+	            key: 'Country',
+	            type: 'horizontalSelect',
+	            templateOptions: {
+	                label: 'Country',
+	                labelProp: 'name',
+	                valueProp: 'name',
+	                options: $scope.countries,
+	                required: true
+	            }
+	        },
+	          {
+	            key: 'PhoneNumber',
+	            type: "horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Phone number',
+	                placeholder: 'Enter your phone',
+	                required: true
+	            }
+	        },
+	         {
+	           key: 'HearOfUs',
+	           type: 'horizontalTextArea',
+	           templateOptions:
+	               {
+	                   label: 'How did you hear of us?',
+	                   rows: 5,
+	                   placeholder: 'How did you hear of us?',
+	                   required: true
+	               }
+	        },
+	          ,{
+	            key: 'BusinessType',
+	            type: 'bs4-horizontalSelect',
+	            defaultValue: "",
+	            templateOptions: {
+	                label: 'How large is your business?',
+	                labelProp: 'name',
+	                valueProp: 'value',
+	                options: vm.businesSes
+	            },
+	            hideExpression: 'model.mobile'
+	        }
+	        */
+
+	        , {
+	            key: 'BusinessType',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Business Type',
+	                placeholder: 'Enter Business type'
+	            },
+	            hideExpression: 'model.mobile'
+	        }
+
+	        /*
+	        
+	                   {
+	                       key: 'captcha',
+	                       type: "horizontalCaptcha"
+	        
+	        
+	                   , validators:
+	                {
+	                    xxx: {
+	                        expression: function (vVal, mVal, scope) { return scope.check(vVal); },
+	                        message: "xxxxxxxxxxx"
+	                    }
+	        
 	                }
-	           }
+	        
+	        
+	                        , templateOptions: {
+	                            label: 'Captcha',
+	                            placeholder: 'Enter 4-digit number'
+	                        }
+	                   }
+	        
+	                   */
 
-	           */
-
-
-	           
-
-
-	            ];
-
+	        ];
 	    }
 
-
-
-
 	    return RegisterController;
-
-
-	}
+	};
 
 /***/ },
 /* 193 */
@@ -55946,31 +53811,25 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	    function ConfirmRegisterController($scope, $state, $stateParams, LoginService, InfoFactory, ChoicesFactory ,toaster, $sessionStorage)
-	    {
+	    function ConfirmRegisterController($scope, $state, $stateParams, LoginService, InfoFactory, ChoicesFactory, toaster, $sessionStorage) {
 	        var vm = this;
 
 	        vm._res = 'LOAD';
 
-	        LoginService.ConfirmRegistration($stateParams.memberID)
-	        .then(function (data)
-	        {
+	        LoginService.ConfirmRegistration($stateParams.memberID).then(function (data) {
 	            vm._res = data.result;
 
-	            if (data.result && data.result == "ERROR" && data.message)
-	            {
+	            if (data.result && data.result == "ERROR" && data.message) {
 	                vm._res = 'ERROR';
 	                toaster.pop('error', data.message);
 	                return;
 	            }
 
-	            if (data.result && data.result == "OK" && data.state)
-	            {
+	            if (data.result && data.result == "OK" && data.state) {
 	                if (data.udata) {
 	                    try {
 	                        var _srchdata = angular.fromJson(decodeURIComponent(data.udata));
@@ -55981,9 +53840,8 @@ webpackJsonp([0],[
 	                        }
 	                        */
 
-	                        if (_srchdata.bustype!=undefined)
-	                        {
-	                            vm._res='OK';
+	                        if (_srchdata.bustype != undefined) {
+	                            vm._res = 'OK';
 
 	                            delete _srchdata.date_start;
 	                            delete _srchdata.date_start_;
@@ -55994,33 +53852,21 @@ webpackJsonp([0],[
 
 	                            ChoicesFactory.choices.bustype = InfoFactory.bustypes[_srchdata.bustype.id == 1 ? 0 : 1];
 	                        }
+	                    } catch (e) {
+	                        console.log('Error ' + e.name + ":" + e.message + "\n" + e.stack);
 	                    }
-	                    catch (e) { console.log('Error ' + e.name + ":" + e.message + "\n" + e.stack); }
 	                }
 
-
-	       //         $state.go(data.state);
+	                //         $state.go(data.state);
 	                $state.go('search');
 	                return;
 	            }
-
-
 	        });
-
-
-
 	    }
 	    ConfirmRegisterController.$inject = ["$scope", "$state", "$stateParams", "LoginService", "InfoFactory", "ChoicesFactory", "toaster", "$sessionStorage"];
 
-
 	    return ConfirmRegisterController;
-
-
-
-	}
-
-
-
+	};
 
 /***/ },
 /* 196 */
@@ -56028,16 +53874,13 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 	        var _views = {};
 	        _views = { 'content@root': { template: __webpack_require__(197), controller: __webpack_require__(198)(app), controllerAs: 'vm' } };
-	        $stateProvider.state('profile', { parent: 'root', url: 'profile', views: _views , authenticate: true });
+	        $stateProvider.state('profile', { parent: 'root', url: 'profile', views: _views, authenticate: true });
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
@@ -56050,12 +53893,7 @@ webpackJsonp([0],[
 	    __webpack_require__(218)(app);
 	    __webpack_require__(221)(app);
 	    __webpack_require__(227)(app);
-
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 197 */
@@ -56069,38 +53907,31 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	    function ProfileController($scope, LoginService, GetResultsFactory, toaster)
-	    {
+	    function ProfileController($scope, LoginService, GetResultsFactory, toaster) {
 	        var vm = this;
 	        vm.done = false;
 	        vm.results = { changeCC: false, createSubscr: false, isLogged: false, isLoaded: false };
-
 
 	        /*
 	        GetResultsFactory.getCounters()
 	               .then(function (data)
 	               {
-
-	                   vm.results =
+	                     vm.results =
 	                       {
 	                           _count: data.count,
 	                           _leftcount: data.leftcount,
 	                           _demo: JSON.parse(data.demo.toLowerCase()),
 	                           isLoaded: true
 	                       };
-
-	                   vm.results._leftcount = 0;
+	                     vm.results._leftcount = 0;
 	               });
+	                 */
 
-	               */
-
-	        function _loaddata( data)
-	        {
+	        function _loaddata(data) {
 	            vm.results.username = data.username;
 	            vm.results.isLogged = data.islogged;
 	            vm.results.isAdmin = data.isadmin;
@@ -56109,25 +53940,18 @@ webpackJsonp([0],[
 	            vm.results.isLoaded = true;
 	        }
 
-
-	        function _handler(event,data)
-	        {
+	        function _handler(event, data) {
 	            _loaddata(data);
-	          }
+	        }
 
 	        LoginService.getuserinfo().then(_loaddata);
 
 	        $scope.$on('ChangeUserStatus', _handler);
-
-
-
 	    }
 	    ProfileController.$inject = ["$scope", "LoginService", "GetResultsFactory", "toaster"];
 
-
 	    return ProfileController;
-
-	}
+	};
 
 /***/ },
 /* 199 */
@@ -56135,29 +53959,18 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
-	 
+	    function configRoutes($stateProvider) {
 
 	        $stateProvider.state('profile.changepassword', { url: '/changepassword', template: __webpack_require__(200), controller: __webpack_require__(201)(app), controllerAs: 'vm', authenticate: true });
 	        $stateProvider.state('profile.changepasswordsuccess', { url: '/changepaswordsuccess', template: __webpack_require__(202) });
-
-
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 200 */
@@ -56171,104 +53984,77 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	//    app.controller('ChangePasswordController', ChangePasswordController);
+	    //    app.controller('ChangePasswordController', ChangePasswordController);
 
-	//    ChangePasswordController.$inject = ['$scope', '$state', 'toaster', 'LoginService'];
+	    //    ChangePasswordController.$inject = ['$scope', '$state', 'toaster', 'LoginService'];
 
-	    function ChangePasswordController($scope, $state, toaster, LoginService)
-	    {
+	    function ChangePasswordController($scope, $state, toaster, LoginService) {
 
 	        var vm = this;
 	        vm.data = {};
 
 	        vm.changepassword = function ($event) {
 	            $event.preventDefault();
-	            LoginService.changepassword(vm.data.old_password, vm.data.new_password)
-	            .then(function (data) {
+	            LoginService.changepassword(vm.data.old_password, vm.data.new_password).then(function (data) {
 	                if (data.result == 'ERROR') {
 	                    toaster.pop('error', data.message);
 	                }
 	                if (data.result == 'OK') {
 	                    $state.go('profile.changepasswordsuccess');
 	                }
-
-
 	            });
 	        };
 
+	        vm.dataFields = [{
+	            key: 'old_password',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'password',
+	                label: 'Old Password',
+	                placeholder: 'Enter old password',
+	                required: true,
+	                minlength: 6,
+	                maxlength: 20
+	            }
+	        }, {
+	            key: 'new_password',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'password',
+	                label: 'New Password',
+	                placeholder: 'Enter new password',
+	                required: true,
+	                minlength: 6,
+	                maxlength: 20
+	            }
+	        }, {
+	            key: 'confirmPassword',
+	            type: 'bs4-horizontalInput',
+	            optionsTypes: ['matchField'],
+	            model: vm.confirmationModel,
+	            templateOptions: {
+	                type: 'password',
+	                label: 'Confirm New Password',
+	                placeholder: 'Please re-enter new password',
+	                required: true,
+	                minlength: 6,
+	                maxlength: 20
 
-
-
-	        vm.dataFields =
-	            [
-
-
-	            {
-	                key: 'old_password',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'password',
-	                    label: 'Old Password',
-	                    placeholder: 'Enter old password',
-	                    required: true,
-	                    minlength: 6,
-	                    maxlength: 20
-	    }
 	            },
-
-
-
-
-	            {
-	                key: 'new_password',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'password',
-	                    label: 'New Password',
-	                    placeholder: 'Enter new password',
-	                    required: true,
-	                    minlength: 6,
-	                    maxlength: 20
-	                }
-	            },
-
-
-	{
-	    key: 'confirmPassword',
-	    type: 'bs4-horizontalInput',
-	    optionsTypes: ['matchField'],
-	    model: vm.confirmationModel,
-	    templateOptions: {
-	        type: 'password',
-	        label: 'Confirm New Password',
-	        placeholder: 'Please re-enter new password',
-	        required: true,
-	        minlength: 6,
-	        maxlength: 20
-
-	    },
-	    data: {
-	        fieldToMatch: 'new_password',
-	        modelToMatch: vm.data
-	    }
-	}
-
-
-
-	            ];
-
+	            data: {
+	                fieldToMatch: 'new_password',
+	                modelToMatch: vm.data
+	            }
+	        }];
 	    }
 	    ChangePasswordController.$inject = ["$scope", "$state", "toaster", "LoginService"];
 
-
 	    return ChangePasswordController;
-
-	}
+	};
 
 /***/ },
 /* 202 */
@@ -56282,36 +54068,24 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
-
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 
-	        $stateProvider.state('profile.changepersonaldata', 
-	            {
-	                url: '/changepersonaldata',
-	                template: __webpack_require__(204),
-	                controller: __webpack_require__(205)(app),
-	                controllerAs: 'vm',
-	                authenticate: true
-	                , params: { username: null, backto: null }
-	            }
-	            
-	            );
-
+	        $stateProvider.state('profile.changepersonaldata', {
+	            url: '/changepersonaldata',
+	            template: __webpack_require__(204),
+	            controller: __webpack_require__(205)(app),
+	            controllerAs: 'vm',
+	            authenticate: true,
+	            params: { username: null, backto: null }
+	        });
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 204 */
@@ -56325,53 +54099,35 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	    function ChangePersonalDataController($scope, $state, $stateParams, $http, $sessionStorage, LoginService, toaster)
-	    {
-	     
-
+	    function ChangePersonalDataController($scope, $state, $stateParams, $http, $sessionStorage, LoginService, toaster) {
 
 	        var vm = this;
 
 	        vm._backto = $stateParams.backto;
 	        vm._username = $stateParams.username;
 
+	        vm.countries = [{ id: 1, name: "United States" }, { id: 2, name: "Canada" }];
 
-	        vm.countries =
-	             [
-	             { id: 1, name: "United States" },
-	             { id: 2, name: "Canada" }
-	             ];
+	        vm.businesSes = [{ name: "MICRO BUSINESS" }, { name: "HOME BASE BUSINESS" }, { name: "SMALL BUSINESS" }, { name: "LARGE BUSINESS" }];
 
-	        vm.businesSes =
-	             [
-	             { name: "MICRO BUSINESS" },
-	             { name: "HOME BASE BUSINESS" },
-	             { name: "SMALL BUSINESS" },
-	             { name: "LARGE BUSINESS" }
-	             ];
+	        vm.data = {
+	            CompanyName: '',
+	            Title: null,
+	            Address: '',
+	            City: '',
+	            State: '',
+	            Zip: '',
+	            Country: '',
+	            PhoneNumber: '',
+	            HearOfUs: '',
+	            BusinessType: null,
+	            Message: null
 
-
-
-	        vm.data =
-	            {
-	                CompanyName: '',
-	                Title: null,
-	                Address: '',
-	                City: '',
-	                State: '',
-	                Zip: '',
-	                Country: '',
-	                PhoneNumber: '',
-	                HearOfUs: '',
-	                BusinessType: null,
-	                Message: null
-
-	            };
+	        };
 
 	        //        var _stmp = localStorageService.get('_regdata');
 	        //        if (_stmp != null) vm.regdata = angular.fromJson(_stmp);
@@ -56381,154 +54137,110 @@ webpackJsonp([0],[
 	        //        if (_stmp != null) vm.data = _stmp;
 
 
+	        vm.dataFields = [{
+	            key: 'Email',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'email',
+	                label: 'Email address',
+	                placeholder: 'Enter email',
+	                required: true,
+	                //                    minlength: 10,
+	                maxlength: 30
 
-
-	        vm.dataFields =
-	            [
-
-	            {
-	                key: 'Email',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'email',
-	                    label: 'Email address',
-	                    placeholder: 'Enter email',
-	                    required: true,
-	//                    minlength: 10,
-	                    maxlength: 30
-
-	                }
-	            },
-
-
-
-	            {
-	                key: 'FirstName',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'First Name',
-	                    placeholder: 'Enter First Name',
-	//                    minlength: 5,
-	                    maxlength: 25,
-	                    required: true
-	                }
-	            },
-
-	            {
-	                key: 'LastName',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Last Name',
-	                    placeholder: 'Enter Last Name',
-	//                    minlength: 5,
-	                    maxlength: 25,
-	                    required: true
-	                }
 	            }
-
-	            ,{
-	        key: 'Zip',
-	        type: "bs4-horizontalInput",
-	        templateOptions: {
-	            type: 'text',
-	            label: 'Zip',
-	            placeholder: 'Enter Zip',
-	            required: true
+	        }, {
+	            key: 'FirstName',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'First Name',
+	                placeholder: 'Enter First Name',
+	                //                    minlength: 5,
+	                maxlength: 25,
+	                required: true
+	            }
+	        }, {
+	            key: 'LastName',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Last Name',
+	                placeholder: 'Enter Last Name',
+	                //                    minlength: 5,
+	                maxlength: 25,
+	                required: true
+	            }
+	        }, {
+	            key: 'Zip',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Zip',
+	                placeholder: 'Enter Zip',
+	                required: true
+	            }
 	        }
-	    }
 
-
-
-	            /*
-	           ,{
-	               key: 'captcha',
-	               type: "bs4-horizontalCaptcha"
-
-
+	        /*
+	        ,{
+	           key: 'captcha',
+	           type: "bs4-horizontalCaptcha"
 	           , validators:
 	        {
-	            //            bob: '$viewValue=="bob"',
-
-	            xxx: {
-	                expression: function (vVal, mVal, scope) { return scope.check(vVal); },
-	                message: "xxxxxxxxxxx"
-	            }
-
+	        //            bob: '$viewValue=="bob"',
+	          xxx: {
+	            expression: function (vVal, mVal, scope) { return scope.check(vVal); },
+	            message: "xxxxxxxxxxx"
 	        }
-
-
+	        }
 	                , templateOptions: {
-	                    label: 'Captcha',
-	                    placeholder: 'Enter 4-digit number'
-	                }
-	           }
-	           */
+	                label: 'Captcha',
+	                placeholder: 'Enter 4-digit number'
+	            }
+	        }
+	        */
 
-
-	            ];
+	        ];
 
 	        vm.cancel = function ($event) {
 	            $event.preventDefault();
 	            $state.go(vm._backto ? vm._backto : 'profile');
-	        }
+	        };
 
 	        vm.updatedata = function ($event) {
 	            $event.preventDefault();
 
-
 	            //            localStorageService.set('_regdata', angular.toJson(vm.regdata));
 	            //            $sessionStorage["_updatepersdata"]=vm.data;
 
-	            LoginService.updateuserinfo(vm.data,vm._username)
-	            .then(function (data) {
+	            LoginService.updateuserinfo(vm.data, vm._username).then(function (data) {
 	                if (data.result == 'ERROR') {
 	                    toaster.pop('error', data.message);
 	                }
 	                if (data.result == 'OK') {
-	                    $state.go(vm._backto?vm._backto:'profile');
+	                    $state.go(vm._backto ? vm._backto : 'profile');
 	                }
-
-
 	            });
 	        };
 
-
-	        LoginService.getuserinfo()
-	                   .then(function (data) {
-	                       if (data.islogged) {
-	                           LoginService.getuserdetailinfo(vm._username)
-	                            .then(function (data) {
-	                                if (data.result == 'ERROR') {
-	                                    toaster.pop('error', data.message);
-	                                }
-	                                if (data.result == 'OK') {
-	                                    var _xx = angular.merge(vm.data, data.data);
-	                                }
-	                            });
-	                       }
-	                   });
-
-
-
-
-
-
-
-
-
-
-
+	        LoginService.getuserinfo().then(function (data) {
+	            if (data.islogged) {
+	                LoginService.getuserdetailinfo(vm._username).then(function (data) {
+	                    if (data.result == 'ERROR') {
+	                        toaster.pop('error', data.message);
+	                    }
+	                    if (data.result == 'OK') {
+	                        var _xx = angular.merge(vm.data, data.data);
+	                    }
+	                });
+	            }
+	        });
 	    }
 	    ChangePersonalDataController.$inject = ["$scope", "$state", "$stateParams", "$http", "$sessionStorage", "LoginService", "toaster"];
 
-
-
 	    return ChangePersonalDataController;
-
-
-	}
+	};
 
 /***/ },
 /* 206 */
@@ -56536,38 +54248,28 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
-
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 
 	        $stateProvider.state('profile.orderhistory', { url: '/orderhistory', template: __webpack_require__(207), controller: __webpack_require__(208)(app), controllerAs: 'vm', authenticate: true });
 
-	        $stateProvider.state('admin.orders',
-	            {
-	                url: '/user/orders',
-	                template: __webpack_require__(207),
-	                controller: __webpack_require__(208)(app),
-	                controllerAs: 'vm',
-	                authenticate: true,
-	                params: { username: null, backto: null }
+	        $stateProvider.state('admin.orders', {
+	            url: '/user/orders',
+	            template: __webpack_require__(207),
+	            controller: __webpack_require__(208)(app),
+	            controllerAs: 'vm',
+	            authenticate: true,
+	            params: { username: null, backto: null }
 
-	            });
-
+	        });
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    __webpack_require__(214)(app);
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 207 */
@@ -56582,202 +54284,136 @@ webpackJsonp([0],[
 	'use strict';
 
 	module.exports = function (app) {
-	    /* @ngInject */
+	        /* @ngInject */
 
-	    function OrderHistoryController($scope,
-	        $state,$stateParams,
-	        uiGridConstants, OrderHistoryService,
-	        _, createDialog, toaster, LoginService) {
-	        var vm = this;
+	        function OrderHistoryController($scope, $state, $stateParams, uiGridConstants, OrderHistoryService, _, createDialog, toaster, LoginService) {
+	                var vm = this;
 
-	        vm._backto = $stateParams.backto?$stateParams.backto:"profile";
-	        vm._username = $stateParams.username;
+	                vm._backto = $stateParams.backto ? $stateParams.backto : "profile";
+	                vm._username = $stateParams.username;
 
+	                //        $scope.gridScope = $scope;
 
-	        //        $scope.gridScope = $scope;
+	                vm.removeRow = function ($event, ent) {
 
-	        vm.removeRow = function ($event, ent) {
+	                        $event.preventDefault();
+	                        $event.stopPropagation();
+	                        vm.value = ent.ListId;
 
-	            $event.preventDefault();
-	            $event.stopPropagation();
-	            vm.value = ent.ListId;
+	                        alert('ssss');
 
-	            alert('ssss');
+	                        LoginService.getuserinfo().then(function (data) {
+	                                if (data.islogged) {
+	                                        OrderHistoryService.getOrderInfo(ent.ListId).then(function (data) {
+	                                                if (data.result == "OK") {
+	                                                        vm.orderinfo = data.data;
+	                                                }
+	                                                if (data.result != "OK" && data.message) {
+	                                                        toaster.pop('error', data.message);
+	                                                }
+	                                        });
+	                                }
+	                        });
+	                };
 
-	            LoginService.getuserinfo()
-	            .then(
-	            function (data) {
-	                if (data.islogged) {
-	                    OrderHistoryService.getOrderInfo(ent.ListId)
-	                    .then(
-	                    function (data) {
-	                        if (data.result == "OK") { vm.orderinfo = data.data; }
-	                        if (data.result != "OK" && data.message) { toaster.pop('error', data.message); }
-	                    }
-	                    );
+	                vm._show = function (_orderinfo) {
+	                        createDialog({
+	                                id: 'SpecialOffer',
+	                                css: {
+	                                        top: '100px',
+	                                        margin: '0 auto'
+	                                },
+	                                template: __webpack_require__(209),
+	                                footerTemplate: __webpack_require__(210),
+	                                backdrop: true,
+	                                cancel: { label: 'Exit', fn: function fn() {} },
+	                                controller: 'OrderShowInfoController'
+	                        }, {
+	                                orderinfo: _orderinfo });
+	                };
+
+	                vm.getlist = function ($event, ent) {
+
+	                        $event.preventDefault();
+	                        $event.stopPropagation();
+	                        var _id = ent.ListId;
+
+	                        angular.element('.dwnl').remove();
+	                        var anchor = angular.element('<iframe class="dwnl" ></iframe>');
+	                        anchor.attr({
+	                                src: '/SPA/Order.ashx?id=' + _id,
+	                                style: "display:none;"
+	                        });
+
+	                        anchor.appendTo('body');
+	                };
+
+	                vm.showInfo = function ($event, ent) {
+
+	                        $event.preventDefault();
+	                        $event.stopPropagation();
+	                        vm.value = ent;
+
+	                        OrderHistoryService.getOrderInfo(ent.ListId).then(function (data) {
+
+	                                if (data.result == "OK") {
+	                                        vm.orderinfo = data.data;
+	                                        var _data = data.data;
+
+	                                        _data.WithContacts = vm.value.SearchData.WithContacts;
+	                                        _data.WithPhones = vm.value.SearchData.WithPhones;
+
+	                                        vm._show(_data);
+	                                }
+
+	                                if (data.result != "OK" && data.message) {
+	                                        toaster.pop('error', data.message);
+	                                }
+	                        });
+	                };
+
+	                //        $scope._records = [];
+
+	                vm.gridOptions = {};
+	                vm.gridOptions.appScopeProvider = vm;
+
+	                //        vm.gridOptions.data = '_records';
+
+	                vm.gridOptions.enableColumnResizing = true;
+	                vm.gridOptions.enableFiltering = false;
+
+	                vm.gridOptions.enableColumnMenus = false;
+	                vm.gridOptions.enableGridMenu = false;
+
+	                vm.gridOptions.showGridFooter = false;
+
+	                vm.gridOptions.showColumnFooter = false;
+
+	                vm.gridOptions.paginationPageSizes = [10, 25, 50, 100, 200];
+	                vm.gridOptions.paginationPageSize = 10;
+	                vm.gridOptions.useExternalPagination = true;
+
+	                var boolColTemplate = __webpack_require__(211);
+
+	                vm.gridOptions.columnDefs = [{
+	                        name: ' ',
+	                        displayName: 'Actions'
+	                        //                    , cellTemplate: require('./cell-template.tpl.html')
+	                        , cellTemplate: __webpack_require__(212),
+	                        pinnedLeft: false, width: 120
+	                }, { name: 'ListId', displayName: 'Order ID', sortable: false, pinnedLeft: false, width: 100 }, { name: 'InvoiceNumber', displayName: 'Invoice Number', pinnedLeft: false, width: 100 }, { name: 'CreateDate', displayName: 'Create Date', pinnedLeft: false, width: 100 }, { name: 'ListName', displayName: 'List Name', width: 150 }, { name: 'Count', displayName: 'Records count', width: 100 }, { name: "BeginDate", visible: true, displayname: 'Begin Date', width: 120 }, { name: "EndDate", visible: true, displayname: 'End Date', width: 120 }, {
+	                        field: '_criteria',
+	                        visible: true,
+	                        displayName: 'Search Criteria',
+	                        cellTemplate: __webpack_require__(213),
+	                        width: 600
 	                }
-	            }
-	            );
-
-
-	        };
-
-	   
-
-
-	        vm._show=function(_orderinfo)
-	        {
-	            createDialog(
-	        {
-	            id: 'SpecialOffer',
-	            css: {
-	                top: '100px',
-	                margin: '0 auto'
-	            },
-	            template: __webpack_require__(209),
-	            footerTemplate: __webpack_require__(210),
-	            backdrop: true,
-	            cancel: { label: 'Exit', fn: function () { } }
-	           , controller: 'OrderShowInfoController'
-	        },
-
-	        {
-	            orderinfo: _orderinfo        }
-	            );
-	        }
-
-
-
-	        vm.getlist = function ($event, ent) {
-
-	            $event.preventDefault();
-	            $event.stopPropagation();
-	            var _id = ent.ListId;
-
-
-	            angular.element('.dwnl').remove();
-	            var anchor = angular.element('<iframe class="dwnl" ></iframe>');
-	            anchor.attr({
-	                src: '/SPA/Order.ashx?id='+_id,
-	                style: "display:none;"
-	            });
-
-	            anchor.appendTo('body');
-
-
-
-	        }
-
-
-
-
-
-
-	        vm.showInfo = function ($event, ent) {
-
-	            $event.preventDefault();
-	            $event.stopPropagation();
-	            vm.value = ent;
-
-	            OrderHistoryService.getOrderInfo(ent.ListId)
-	.then(
-	function (data)
-	{
-
-	    if (data.result == "OK") {
-	        vm.orderinfo = data.data;
-	        var _data = data.data;
-
-	        _data.WithContacts = vm.value.SearchData.WithContacts;
-	        _data.WithPhones = vm.value.SearchData.WithPhones;
-
-	        vm._show(_data);
-	    }
-
-	    if (data.result != "OK" && data.message) { toaster.pop('error', data.message); }
-	}
-	);
-
-
-
-
-
-
-
-
-
-	        };
-
-
-
-
-
-
-
-	        //        $scope._records = [];
-
-	        vm.gridOptions = {};
-	        vm.gridOptions.appScopeProvider = vm;
-
-	        //        vm.gridOptions.data = '_records';
-
-	        vm.gridOptions.enableColumnResizing = true;
-	        vm.gridOptions.enableFiltering = false;
-
-
-	        vm.gridOptions.enableColumnMenus = false;
-	        vm.gridOptions.enableGridMenu = false;
-
-
-	        vm.gridOptions.showGridFooter = false;
-
-
-	        vm.gridOptions.showColumnFooter = false;
-
-
-
-	        vm.gridOptions.paginationPageSizes = [10, 25, 50, 100, 200];
-	        vm.gridOptions.paginationPageSize = 10;
-	        vm.gridOptions.useExternalPagination = true;
-
-	        var boolColTemplate = __webpack_require__(211);
-
-
-	        vm.gridOptions.columnDefs =
-	            [
-	                {
-	                    name: ' ',
-	                    displayName: 'Actions'
-	                    //                    , cellTemplate: require('./cell-template.tpl.html')
-	                    , cellTemplate: __webpack_require__(212)
-	                    , pinnedLeft: false , width: 120
-	                },
-
-	                { name: 'ListId', displayName: 'Order ID', sortable: false, pinnedLeft: false , width: 100 },
-	                { name: 'InvoiceNumber', displayName: 'Invoice Number', pinnedLeft: false, width: 100 },
-	                { name: 'CreateDate', displayName: 'Create Date', pinnedLeft: false, width: 100 },
-	                { name: 'ListName', displayName: 'List Name', width: 150 },
-	                { name: 'Count', displayName: 'Records count', width: 100 },
-	                { name: "BeginDate", visible: true, displayname: 'Begin Date', width: 120 },
-	                { name: "EndDate", visible: true, displayname: 'End Date', width: 120 },
-
-
-	                {
-	                    field: '_criteria',
-	                    visible: true,
-	                    displayName: 'Search Criteria',
-	                    cellTemplate: __webpack_require__(213),
-	                    width: 600
-	                }
-
 
 	                /*
 	                ,
 	                { name: "States", visible: true, displayname: 'States', width: 150 },
 	                { name: "Cities", visible: true, displayname: 'Cities', width: 150 },
-
-
-	                { name: "ZipCodes", visible: true, displayname: 'Zip Codes', width: 150 },
+	                    { name: "ZipCodes", visible: true, displayname: 'Zip Codes', width: 150 },
 	                { name: "AreaCodes", visible: true, displayname: 'Area Codes', width: 150 },
 	                { name: "SICCodes", visible: true, displayname: 'SIC Codes', width: 150 },
 	                { name: "GroupSICCodes", visible: true, displayname: 'Group SIC Codes', width: 150 },
@@ -56788,140 +54424,127 @@ webpackJsonp([0],[
 	                { name: "Miles", visible: true, displayname: 'Miles', width: 100 },
 	                { name: "ZipForRadius", visible: true, displayname: 'Zip For Radius', width: 100 },
 	                { name: "Keyword", visible: true, width: 200 },
-
-	                { name: "WithContacts", visible: true, cellTemplate: boolColTemplate, displayname: 'With Contacts', width: 150 },
+	                  { name: "WithContacts", visible: true, cellTemplate: boolColTemplate, displayname: 'With Contacts', width: 150 },
 	                { name: "WithPhones", visible: true, cellTemplate: boolColTemplate, displayname: 'With Phones', width: 150 },
 	                { name: "WithEmails", visible: true, cellTemplate: boolColTemplate, displayname: 'With E-mails', width: 150 }
+	                  */
 
-	                */
+	                ];
+
+	                vm.gridOptions.rowIdentity = function (row) {
+	                        return row.ListId;
+	                };
+	                vm.gridOptions.getRowIdentity = function (row) {
+	                        return row.ListId;
+	                };
+
+	                vm.gridOptions.onRegisterApi = function (gridApi) {
+	                        vm.gridApi = gridApi;
+
+	                        gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
+	                                if (vm.getPage) {
+	                                        vm.getPage(newPage, pageSize);
+	                                }
+	                        });
+	                };
+
+	                vm.addCriteriesColumn = function (_item) {
+	                        var _choices = {};
+
+	                        _choices.states = _.map(_item.States.match(/[A-Z]{2}/g), function (t) {
+	                                return { shortname: t };
+	                        });
+	                        _choices.cities = _.map(_item.Cities.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) {
+	                                var _arr = _itm.split(',');return { Name: _arr[0], State: _arr[1].trim() };
+	                        });
+	                        _choices.zipcodes = _.filter(_item.ZipCodes.split(','), function (t) {
+	                                return t.trim().length > 0;
+	                        });
+	                        _choices.areacodes = _.filter(_item.AreaCodes.split(','), function (t) {
+	                                return t.trim().length > 0;
+	                        });
+	                        _choices.counties = _.map(_item.Counties.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) {
+	                                var _arr = _itm.split(',');return { Name: _arr[0], State: _arr[1].trim() };
+	                        });
+
+	                        _choices.siccodes = [];
+	                        var _pat_sic = /(\d{2})\s+(.+)\s*/;
+	                        var _xarr = _.filter(_item.GroupSICCodes.split(','), function (t) {
+	                                return _pat_sic.test(t);
+	                        });
+	                        _choices.siccodes = _.map(_xarr, function (_itm) {
+	                                var _arr = _itm.match(/(\d{2})\s+(.+)\s*/);return { code: _arr[1], name: _arr[2].trim() };
+	                        });
+
+	                        _choices.keywords = _.filter(_item.Keyword.split(','), function (t) {
+	                                return t.trim().length > 0;
+	                        });
+	                        _choices.rbdiBusiness = /B/.test(_item.RBDI);
+	                        _choices.rbdiIndividual = /R/.test(_item.RBDI);
+	                        _choices.rbdiUnknown = _choices.rbdiBusiness && _choices.rbdiIndividual;
+
+	                        _choices.zipForRadius = _item.ZipForRadius;
+	                        _choices.radiusMiles = _item.Miles;
+	                        _choices.companysizes = [];
+	                        _choices.salesvolumes = _.filter(_item.Sales.split(','), function (t) {
+	                                return t.trim().length > 0;
+	                        });
+	                        _choices.chkContactNames = _item.WithContacts;
+	                        _choices.chkPhoneNumbers = _item.WithPhones;
+	                        _choices.chkEmails = _item.WithEmails;
+
+	                        _item.Criteries = _choices;
+
+	                        return _item;
+	                };
+
+	                vm.getPage = function (_page, _size) {
+	                        var promise = OrderHistoryService.getPage(_page, _size, vm._username);
+	                        promise.then(function (data) {
+	                                vm.gridOptions.totalItems = data.cntrecords;
+	                                var _records = _.map(data.records, function (_item) {
+	                                        return angular.merge({}, _item.view, { CreateDate: _item.info.CreateDate });
+	                                });
+	                                var _records_1 = _.col13dig2date(_records);
+	                                vm.gridOptions.data = _.map(_records_1, function (_item) {
+	                                        return vm.addCriteriesColumn(_item);
+	                                });
+
+	                                //                vm.gridOptions.data = _.col13dig2date(_records);
+	                                //                vm._records = _.col13dig2date(data.records);
 
 
+	                                /*
+	                                                var _len = vm.gridOptions.data.length || 5;
+	                                                var _len_new = (_len < 5) ? 5 : _len;
+	                                
+	                                
+	                                
+	                                                vm.gridOptions.enableVerticalScrollbar = uiGridConstants.scrollbars.NEVER;
+	                                                vm.gridOptions.minRowsToShow = _len_new + 3;
+	                                
+	                                
+	                                                vm.grid_height = (_len_new + 3) * vm.gridOptions.rowHeight;
+	                                */
 
+	                                // agi                var _len = vm.gridOptions.data.length;
+	                                // 2017-02-07               vm.gridOptions.minRowsToShow = _len + 3;
 
+	                        });
 
+	                        return promise;
+	                };
 
+	                activate();
+	                function activate() {
 
-	            ];
-
-	        vm.gridOptions.rowIdentity = function (row) {
-	            return row.ListId;
-	        };
-	        vm.gridOptions.getRowIdentity = function (row) {
-	            return row.ListId;
-	        };
-
-	        vm.gridOptions.onRegisterApi = function (gridApi) {
-	            vm.gridApi = gridApi;
-
-	            gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
-	                if (vm.getPage) {
-	                    vm.getPage(newPage, pageSize);
+	                        vm.getPage(1, vm.gridOptions.paginationPageSize).then(function () {});
 	                }
-	            });
-
-	        };
-
-
-	        vm.addCriteriesColumn = function (_item) {
-	            var _choices = {};
-
-	            _choices.states = _.map(_item.States.match(/[A-Z]{2}/g), function (t) { return { shortname: t }; });
-	            _choices.cities = _.map(_item.Cities.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) { var _arr = _itm.split(','); return { Name: _arr[0], State: _arr[1].trim() }; });
-	            _choices.zipcodes = _.filter(_item.ZipCodes.split(','), function (t) { return t.trim().length > 0; });
-	            _choices.areacodes = _.filter(_item.AreaCodes.split(','), function (t) { return t.trim().length > 0; });
-	            _choices.counties = _.map(_item.Counties.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) { var _arr = _itm.split(','); return { Name: _arr[0], State: _arr[1].trim() }; });
-
-	            _choices.siccodes = [];
-	            var _pat_sic = /(\d{2})\s+(.+)\s*/;
-	            var _xarr = _.filter(_item.GroupSICCodes.split(','), function (t) { return _pat_sic.test(t); });
-	            _choices.siccodes = _.map(_xarr, function (_itm) { var _arr = _itm.match(/(\d{2})\s+(.+)\s*/); return { code: _arr[1], name: _arr[2].trim() }; });
-
-	            _choices.keywords = _.filter(_item.Keyword.split(','), function (t) { return t.trim().length > 0; });
-	            _choices.rbdiBusiness = /B/.test(_item.RBDI);
-	            _choices.rbdiIndividual = /R/.test(_item.RBDI);
-	            _choices.rbdiUnknown = _choices.rbdiBusiness && _choices.rbdiIndividual;
-
-	            _choices.zipForRadius = _item.ZipForRadius;
-	            _choices.radiusMiles = _item.Miles;
-	            _choices.companysizes = [];
-	            _choices.salesvolumes = _.filter(_item.Sales.split(','), function (t) { return t.trim().length > 0; });
-	            _choices.chkContactNames = _item.WithContacts;
-	            _choices.chkPhoneNumbers = _item.WithPhones;
-	            _choices.chkEmails = _item.WithEmails;
-
-	            _item.Criteries = _choices;
-
-	            return _item;
 	        }
+	        OrderHistoryController.$inject = ["$scope", "$state", "$stateParams", "uiGridConstants", "OrderHistoryService", "_", "createDialog", "toaster", "LoginService"];
 
-
-
-	        vm.getPage = function (_page, _size) {
-	            var promise = OrderHistoryService.getPage(_page, _size, vm._username);
-	            promise.then(
-	            function (data) {
-	                vm.gridOptions.totalItems = data.cntrecords;
-	                var _records = _.map(data.records, function (_item) { return angular.merge({}, _item.view, { CreateDate: _item.info.CreateDate }); });
-	                var _records_1 = _.col13dig2date(_records);
-	                vm.gridOptions.data = _.map(_records_1,function (_item) { return vm.addCriteriesColumn(_item); });
-
-	//                vm.gridOptions.data = _.col13dig2date(_records);
-	                //                vm._records = _.col13dig2date(data.records);
-
-
-
-
-
-	/*
-	                var _len = vm.gridOptions.data.length || 5;
-	                var _len_new = (_len < 5) ? 5 : _len;
-
-
-
-	                vm.gridOptions.enableVerticalScrollbar = uiGridConstants.scrollbars.NEVER;
-	                vm.gridOptions.minRowsToShow = _len_new + 3;
-
-
-	                vm.grid_height = (_len_new + 3) * vm.gridOptions.rowHeight;
-	*/
-
-
-	// agi                var _len = vm.gridOptions.data.length;
-	// 2017-02-07               vm.gridOptions.minRowsToShow = _len + 3;
-
-
-
-
-	            });
-
-	            return promise;
-	        };
-
-
-
-
-
-	        activate();
-	        function activate() {
-
-	            vm.getPage(1, vm.gridOptions.paginationPageSize)
-	              .then(
-	                  function () {
-
-	                  }
-
-	                  );
-
-
-	        }
-	    }
-	    OrderHistoryController.$inject = ["$scope", "$state", "$stateParams", "uiGridConstants", "OrderHistoryService", "_", "createDialog", "toaster", "LoginService"];
-
-
-	    return OrderHistoryController;
-
-
-	}
+	        return OrderHistoryController;
+	};
 
 /***/ },
 /* 209 */
@@ -56959,26 +54582,19 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-
-	module.exports=function(app)
-
-	{
+	module.exports = function (app) {
 
 	    app.controller('OrderShowInfoController', _OrderShowInfoController);
 
 	    /* @ngInject */
-	    function _OrderShowInfoController($scope, orderinfo)
-	    {
+	    function _OrderShowInfoController($scope, orderinfo) {
 	        $scope.orderinfo = orderinfo;
 	        console.log('orderinfo>>', orderinfo);
 	    }
 	    _OrderShowInfoController.$inject = ["$scope", "orderinfo"];
 
-
-	//    return _OrderShowInfoController;
-	}
-
+	    //    return _OrderShowInfoController;
+	};
 
 /***/ },
 /* 215 */
@@ -56986,26 +54602,17 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
-
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 
 	        $stateProvider.state('profile.unsubscribe', { url: '/unsubscribe', template: __webpack_require__(216), controller: __webpack_require__(217)(app), controllerAs: 'vm', authenticate: true });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 216 */
@@ -57019,8 +54626,7 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
@@ -57028,26 +54634,23 @@ webpackJsonp([0],[
 	        var vm = this;
 	        vm.done = false;
 
-
-	        vm.unsubscribe = function ($event)
-	        {
+	        vm.unsubscribe = function ($event) {
 	            //            $event.preventDefault();
 	            //            alert('UNSUBSCRIBE');
-	            LoginService.unsubscribe("")
-	            .then(function (data) {
-	                if (data.result == "OK") { vm.done = true; }
-	                if (data.result == "ERROR") { toaster.pop('error', data.message); }
+	            LoginService.unsubscribe("").then(function (data) {
+	                if (data.result == "OK") {
+	                    vm.done = true;
+	                }
+	                if (data.result == "ERROR") {
+	                    toaster.pop('error', data.message);
+	                }
 	            });
-
 	        };
-
 	    }
 	    UnsubscribeController.$inject = ["$scope", "LoginService", "toaster"];
 
-
 	    return UnsubscribeController;
-
-	}
+	};
 
 /***/ },
 /* 218 */
@@ -57055,26 +54658,17 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
-
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 
 	        $stateProvider.state('profile.changecreditcarddata', { url: '/changecreditcarddata', template: __webpack_require__(219), controller: __webpack_require__(220)(app), controllerAs: 'vm', authenticate: true });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 219 */
@@ -57088,18 +54682,15 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	    function ChangeCreditCardDataController($scope, $timeout  ,$state, $http, $q, _, $sessionStorage, toaster, LoginService, FFD_CONST)
-	    {
+	    function ChangeCreditCardDataController($scope, $timeout, $state, $http, $q, _, $sessionStorage, toaster, LoginService, FFD_CONST) {
 	        var vm = this;
 
 	        vm.is_success = false;
 	        vm.in_process = false;
-
 
 	        $scope.changeCCdata = function ($event) {
 	            $event.preventDefault();
@@ -57107,26 +54698,20 @@ webpackJsonp([0],[
 
 	            vm.in_process = true;
 
+	            LoginService.changecreditcarddata(vm.data).then(function (data) {
+	                //                 $state.go('showcounters');
+	                vm.in_process = false;
 
-	            LoginService.changecreditcarddata(vm.data)
-	             .then(function (data) {
-	                 //                 $state.go('showcounters');
-	                 vm.in_process = false;
+	                if (data.result == 'ERROR') {
+	                    toaster.pop('error', data.message);
+	                }
 
-	                 if (data.result == 'ERROR') {
-	                     toaster.pop('error', data.message);
-	                 }
-
-
-	                 if (data.result == 'OK')
-	                 {
-	                     vm.is_success = true;
-	                     return;
-	                     $state.go('search');
-	                 }
-
-
-	             });
+	                if (data.result == 'OK') {
+	                    vm.is_success = true;
+	                    return;
+	                    $state.go('search');
+	                }
+	            });
 	        };
 
 	        vm.initform = InitForm;
@@ -57135,31 +54720,11 @@ webpackJsonp([0],[
 
 	        vm.options = { removeChromeAutoComplete: true };
 
+	        vm.initform().then(function (data) {});
 
-	        vm.initform().then(function (data) { });
-
-	        $scope._months =
-	            [
-	            { name: "January", value: "01" },
-	            { name: "February", value: "02" },
-	            { name: "March", value: "03" },
-	            { name: "April", value: "04" },
-	            { name: "May", value: "05" },
-	            { name: "June", value: "06" },
-	            { name: "July", value: "07" },
-	            { name: "August", value: "08" },
-	            { name: "September", value: "09" },
-	            { name: "October", value: "10" },
-	            { name: "November", value: "11" },
-	            { name: "December", value: "12" }
-	            ];
-
-
-
-
+	        $scope._months = [{ name: "January", value: "01" }, { name: "February", value: "02" }, { name: "March", value: "03" }, { name: "April", value: "04" }, { name: "May", value: "05" }, { name: "June", value: "06" }, { name: "July", value: "07" }, { name: "August", value: "08" }, { name: "September", value: "09" }, { name: "October", value: "10" }, { name: "November", value: "11" }, { name: "December", value: "12" }];
 
 	        $scope._years = [];
-
 
 	        var _currYear = new Date().getFullYear();
 
@@ -57167,207 +54732,172 @@ webpackJsonp([0],[
 	            $scope._years.push({ value: i });
 	        }
 
-	        vm.data =
-	            {
-	            };
+	        vm.data = {};
 
-	        vm.dataFields =
-	             [
+	        vm.dataFields = [{
+	            key: 'CreditCard',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Credit Card Number',
+	                placeholder: 'Enter your credit card number',
+	                required: true,
+	                disabled: true,
+	                minlength: 14,
+	                maxlength: 16
 
-	                 {
-	                     key: 'CreditCard',
-	                     type: "bs4-horizontalInput",
-	                     templateOptions: {
-	                         type: 'text',
-	                         label: 'Credit Card Number',
-	                         placeholder: 'Enter your credit card number',
-	                         required: true,
-	                         disabled: true,
-	                         minlength: 14,
-	                         maxlength: 16
+	            }
+	        }, {
+	            key: 'CardYear',
+	            type: 'bs4-horizontalSelect',
+	            templateOptions: {
+	                label: 'End date year',
+	                labelProp: 'value',
+	                valueProp: 'value',
+	                options: $scope._years,
+	                required: true
+	            }
+	        }, {
+	            key: 'CardMonth',
+	            type: 'bs4-horizontalSelect',
+	            templateOptions: {
+	                label: 'End date month',
+	                labelProp: 'name',
+	                valueProp: 'value',
+	                options: $scope._months,
+	                required: true
+	            }
+	        }, {
+	            key: 'CVV',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'password',
+	                label: 'Verification Code',
+	                placeholder: 'Enter verification code',
+	                required: true,
+	                minlength: 3,
+	                maxlength: 4,
+	                disabled: true
+	            }
+	        }, {
+	            key: 'CompanyName',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Company Name',
+	                placeholder: 'Enter Company name',
+	                //                    minlength: 5,
+	                maxlength: 40
 
-	                     }
-	                 },
+	            }
+	        }, {
+	            key: 'FirstName',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'First Name',
+	                placeholder: 'Enter First Name',
+	                //                    minlength: 5,
+	                maxlength: 25,
+	                required: true
+	            }
+	        }, {
+	            key: 'LastName',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Last Name',
+	                placeholder: 'Enter Last Name',
+	                //                    minlength: 5,
+	                maxlength: 25,
+	                required: true
+	            }
+	        }, {
+	            key: 'Address',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Address',
+	                placeholder: 'Enter Address',
+	                //                    minlength: 5,
+	                maxlength: 40,
+	                required: true
+	            }
+	        }, {
+	            key: 'City',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'City',
+	                placeholder: 'Enter City',
+	                required: true,
+	                //                    minlength: 5,
+	                maxlength: 40
 
-
-	            {
-	                key: 'CardYear',
-	                type: 'bs4-horizontalSelect',
-	                templateOptions: {
-	                    label: 'End date year',
-	                    labelProp: 'value',
-	                    valueProp: 'value',
-	                    options: $scope._years,
-	                    required: true
-	                }
-	            },
-
-
-	            {
-	                key: 'CardMonth',
-	                type: 'bs4-horizontalSelect',
-	                templateOptions: {
-	                    label: 'End date month',
-	                    labelProp: 'name',
-	                    valueProp: 'value',
-	                    options: $scope._months,
-	                    required: true
-	                }
-	            },
-
-
-	            {
-	                key: 'CVV',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'password',
-	                    label: 'Verification Code',
-	                    placeholder: 'Enter verification code',
-	                    required: true,
-	                    minlength: 3,
-	                    maxlength: 4,
-	                    disabled: true
-	    }
-	            },
-
-	            {
-	                key: 'CompanyName',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Company Name',
-	                    placeholder: 'Enter Company name',
-	//                    minlength: 5,
-	                    maxlength: 40
-
-	                }
-	            },
-
-	            {
-	                key: 'FirstName',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'First Name',
-	                    placeholder: 'Enter First Name',
-	//                    minlength: 5,
-	                    maxlength: 25,
-	                    required: true
-	                }
-	            },
-
-	            {
-	                key: 'LastName',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Last Name',
-	                    placeholder: 'Enter Last Name',
-	//                    minlength: 5,
-	                    maxlength: 25,
-	                    required: true
-	                }
-	            },
-
-	            {
-	                key: 'Address',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Address',
-	                    placeholder: 'Enter Address',
-	//                    minlength: 5,
-	                    maxlength: 40,
-	                    required: true
-	                }
-	            },
-
-
-
-	            {
-	                key: 'City',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'City',
-	                    placeholder: 'Enter City',
-	                    required: true,
-	//                    minlength: 5,
-	                    maxlength: 40,
-
-	                }
-	            },
-
-
-
-	            {
-	                key: 'State',
-	                type: "bs4-horizontalInput",
-	                templateOptions:
-	                    {
-	                        type: 'text',
-	                        label: 'State/Province/Region',
-	                        placeholder: 'Enter State/Province/Region',
-	                        minlength: 2,
-	                        maxlength: 25,
-	                        required: true
-	                    }
-	            },
-
-
-	            {
-	                key: 'Zip',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Zip',
-	                    placeholder: 'Enter Zip',
-	                    minlength: 5,
-	                    maxlength: 12,
-	                    required: true
-	                }
-	            },
-
-	            {
-	                key: 'Country',
-	                type: 'bs4-horizontalSelect',
-	                templateOptions: {
-	                    label: 'Country',
-	                    labelProp: 'name',
-	                    valueProp: 'name',
-	                    options: [{ name: 'United States' }, { name: 'Canada' }, { name: 'United Kingdom' }],//vm.countries,
-	                    required: true
-
-	                },
-	                controller: ['$scope', function ($scope) {
-	                    vm.initform().then(
-	                            function (data) {
-	                                $scope.options.templateOptions.options = _.map(data._countries, function (item) { return { name: item }; });
-
-	                                vm.data.FirstName = data._edFirstName;
-	                                vm.data.LastName = data._edLastName;
-
-	                                vm.data.Address = data._edAddress;
-	                                vm.data.City = data._edCity;
-	                                vm.data.Zip = data._edZip;
-	                                vm.data.State = data._edState;
-	                                vm.data.Country = data._edCountry;
-	                                vm.data.CompanyName = data._edCompanyName;
-
-
-	                                //                                var _stmp = $sessionStorage['_subscriptiondata'];
-	                                //                                if (_stmp != null) vm.regdata = _stmp;
-
-	                                //                                $scope.$apply();
-	                            });
-	                }]
+	            }
+	        }, {
+	            key: 'State',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'State/Province/Region',
+	                placeholder: 'Enter State/Province/Region',
+	                minlength: 2,
+	                maxlength: 25,
+	                required: true
+	            }
+	        }, {
+	            key: 'Zip',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Zip',
+	                placeholder: 'Enter Zip',
+	                minlength: 5,
+	                maxlength: 12,
+	                required: true
+	            }
+	        }, {
+	            key: 'Country',
+	            type: 'bs4-horizontalSelect',
+	            templateOptions: {
+	                label: 'Country',
+	                labelProp: 'name',
+	                valueProp: 'name',
+	                options: [{ name: 'United States' }, { name: 'Canada' }, { name: 'United Kingdom' }], //vm.countries,
+	                required: true
 
 	            },
+	            controller: ['$scope', function ($scope) {
+	                vm.initform().then(function (data) {
+	                    $scope.options.templateOptions.options = _.map(data._countries, function (item) {
+	                        return { name: item };
+	                    });
 
+	                    vm.data.FirstName = data._edFirstName;
+	                    vm.data.LastName = data._edLastName;
 
-	             ];
+	                    vm.data.Address = data._edAddress;
+	                    vm.data.City = data._edCity;
+	                    vm.data.Zip = data._edZip;
+	                    vm.data.State = data._edState;
+	                    vm.data.Country = data._edCountry;
+	                    vm.data.CompanyName = data._edCompanyName;
 
-	        $timeout(function () { angular.element('input[disabled]').each(function () { angular.element(this).removeAttr('disabled'); }); }, 3000);
+	                    //                                var _stmp = $sessionStorage['_subscriptiondata'];
+	                    //                                if (_stmp != null) vm.regdata = _stmp;
+
+	                    //                                $scope.$apply();
+	                });
+	            }]
+
+	        }];
+
+	        $timeout(function () {
+	            angular.element('input[disabled]').each(function () {
+	                angular.element(this).removeAttr('disabled');
+	            });
+	        }, 3000);
 
 	        function InitForm() {
 	            var deferrer = $q.defer();
@@ -57379,32 +54909,18 @@ webpackJsonp([0],[
 	                data: {}
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
-
 	        }
-
-
-
-
-
-
-
-
 	    }
 	    ChangeCreditCardDataController.$inject = ["$scope", "$timeout", "$state", "$http", "$q", "_", "$sessionStorage", "toaster", "LoginService", "FFD_CONST"];
 
-
 	    return ChangeCreditCardDataController;
-
-	}
+	};
 
 /***/ },
 /* 221 */
@@ -57412,29 +54928,20 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
-
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
-	//        var _file_tpl = './templates_m.tpl.html';
-	//        var _js_file = './TemplatesController_m.js';
+	    function configRoutes($stateProvider) {
+	        //        var _file_tpl = './templates_m.tpl.html';
+	        //        var _js_file = './TemplatesController_m.js';
 
-	//        $stateProvider.state('profile.templates', { url: '/templates', template: require('./templates.tpl.html'), controller: require('./TemplatesController.js')(app), controllerAs: 'vm', authenticate: true });
+	        //        $stateProvider.state('profile.templates', { url: '/templates', template: require('./templates.tpl.html'), controller: require('./TemplatesController.js')(app), controllerAs: 'vm', authenticate: true });
 	        $stateProvider.state('profile.templates', { url: '/templates', template: __webpack_require__(222), controller: __webpack_require__(223)(app), controllerAs: 'vm', authenticate: true });
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 222 */
@@ -57446,120 +54953,86 @@ webpackJsonp([0],[
 /* 223 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict'
+	'use strict';
 
-
-	module.exports=function(app)
-	{
-	 
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function _templatesController(
-	        $scope, $state, toaster, $timeout, _,
-	        uiGridConstants, uiGridPaginationService,
-	        InfoFactory, GetResultsFactory, ChoicesFactory, ToolsService)
-	    {
+	    function _templatesController($scope, $state, toaster, $timeout, _, uiGridConstants, uiGridPaginationService, InfoFactory, GetResultsFactory, ChoicesFactory, ToolsService) {
 	        var vm = this;
 
-
-	//        vm.appScope = vm;
+	        //        vm.appScope = vm;
 
 	        vm.gridOptions = {};
 	        vm.gridOptions.appScopeProvider = vm;
-	//        vm.gridOptions.data = '_records';
+	        //        vm.gridOptions.data = '_records';
 	        vm.gridOptions.enableColumnResizing = true;
 	        vm.gridOptions.enableFiltering = false;
 	        vm.gridOptions.enableGridMenu = true;
 	        vm.gridOptions.showGridFooter = false;
-	//        vm.gridOptions.enablePaging = false;
+	        //        vm.gridOptions.enablePaging = false;
 
 
 	        vm.gridOptions.enableColumnMenus = false;
 	        vm.gridOptions.enableGridMenu = false;
-
 
 	        vm.gridOptions.enablePaging = true;
 	        vm.gridOptions.paginationPageSizes = [10, 25, 50, 100, 200];
 	        vm.gridOptions.paginationPageSize = 10;
 	        vm.gridOptions.useExternalPagination = true;
 
-
-	//        vm.gridOptions.enableHorizontalScrollbar = 1;
+	        //        vm.gridOptions.enableHorizontalScrollbar = 1;
 
 	        vm.gridOptions.showColumnFooter = false;
 
 	        vm._refresh = false;
 
-	        vm.gridOptions.columnDefs =
-	            [
+	        vm.gridOptions.columnDefs = [{
+	            field: '_mailing',
+	            visible: true,
+	            displayName: 'Auto Notify Settings',
+	            cellTemplate: __webpack_require__(224),
+	            width: 200 //350
+	        }, {
+	            field: '_actions',
+	            displayName: 'Actions',
+	            cellTemplate: __webpack_require__(225),
+	            width: 180
+	        }, { name: 'TemplateID', displayName: 'TemplateID', visible: false }, { name: 'TemplateName', displayName: 'Template Name', width: "130" }, { name: 'CreateDate', displayName: 'Create Date', sort: { direction: 'desc', priority: 0 }, width: "100" }, { name: 'ListName', displayName: 'List Name', width: "150" }, {
+	            field: '_criteria',
+	            visible: true,
+	            displayName: 'Search Criteria',
+	            cellTemplate: __webpack_require__(226),
+	            width: 720
+	        }
 
-	                {
-	                    field: '_mailing',
-	                    visible: true,
-	                    displayName: 'Auto Notify Settings',
-	                    cellTemplate: __webpack_require__(224),
-	                    width: 200 //350
-	                },
+	        /*
+	                        ,{ name: 'States'        , width: "100" },
+	                        ,{ name: 'Cities'        , width: "100", pinnable: true }
+	                        ,{ name: 'ZipCodes'      , width: "60" }
+	                        ,{ name: 'AreaCodes'     , width: "60" }
+	                        ,{ name: 'SICCodes'      , width: "60" }
+	                        ,{ name: 'Counties'      , width: "60" }
+	                        ,{ name: 'RBDI'          , width: "60" }
+	                        ,{ name: 'Miles'         , width: "60" }
+	                        ,{ name: 'ZipForRadius'  , width: "60" }
+	                        ,{ name: 'GroupSICCodes' , width: "60" }
+	                        ,{ name: 'Employees'     , width: "60" }
+	                        ,{ name: 'Sales'         , width: "60" }
+	                        ,{ name: 'Keyword'       , width: "60" }
+	                        ,{ name: 'WithContacts'  , width: "60" }
+	                        ,{ name: 'WithPhones'    , width: "60" }
+	         */
 
+	        ];
 
-
-
-
-	                {
-	                    field: '_actions',
-	                    displayName: 'Actions', 
-	                    cellTemplate: __webpack_require__(225),
-	                    width:180
-	                },
-
-	                { name: 'TemplateID', displayName: 'TemplateID', visible: false },
-	                { name: 'TemplateName', displayName: 'Template Name', width: "130" },
-	                { name: 'CreateDate', displayName: 'Create Date', sort: { direction: 'desc', priority: 0 }, width: "100" },
-	                { name: 'ListName', displayName: 'List Name', width: "150" },
-
-
-
-	                {
-	                    field: '_criteria',
-	                    visible: true,
-	                    displayName: 'Search Criteria',
-	                    cellTemplate: __webpack_require__(226),
-	                    width: 720
-	                }
-
-
-
-
-	/*
-	                ,{ name: 'States'        , width: "100" },
-	                ,{ name: 'Cities'        , width: "100", pinnable: true }
-	                ,{ name: 'ZipCodes'      , width: "60" }
-	                ,{ name: 'AreaCodes'     , width: "60" }
-	                ,{ name: 'SICCodes'      , width: "60" }
-	                ,{ name: 'Counties'      , width: "60" }
-	                ,{ name: 'RBDI'          , width: "60" }
-	                ,{ name: 'Miles'         , width: "60" }
-	                ,{ name: 'ZipForRadius'  , width: "60" }
-	                ,{ name: 'GroupSICCodes' , width: "60" }
-	                ,{ name: 'Employees'     , width: "60" }
-	                ,{ name: 'Sales'         , width: "60" }
-	                ,{ name: 'Keyword'       , width: "60" }
-	                ,{ name: 'WithContacts'  , width: "60" }
-	                ,{ name: 'WithPhones'    , width: "60" }
-	 */
-	               
-	                
-	            ];
-
-
-
-
-
-
-	        vm.gridOptions.rowIdentity = function (row) { return row.TemplateID; };
-	        vm.gridOptions.getRowIdentity = function (row) { return row.TemplateID; };
+	        vm.gridOptions.rowIdentity = function (row) {
+	            return row.TemplateID;
+	        };
+	        vm.gridOptions.getRowIdentity = function (row) {
+	            return row.TemplateID;
+	        };
 	        vm.gridOptions.data = [];
-
 
 	        //   updatesearchtemplate_mailsettings
 
@@ -57567,77 +55040,62 @@ webpackJsonp([0],[
 	            $event.preventDefault();
 	            console.log("updateThisRow  _row", _row);
 
-	//            ToolsService.ChangeSearchTemplateMailSettings({ load: true, random: false, limit: 20 }, function () { console.log('--OK'); vm.refresh(); }, function () { console.log('--Cancel'); });
+	            //            ToolsService.ChangeSearchTemplateMailSettings({ load: true, random: false, limit: 20 }, function () { console.log('--OK'); vm.refresh(); }, function () { console.log('--Cancel'); });
 
 
-	            ToolsService.ChangeSearchTemplateMailSettings(
-	                {
-	                    id: _row.TemplateID,
-	                    name: _row.TemplateName,
-	                    load: _row.DailyAutoLoad,
-	                    random: _row.DailyAutoLoadRandomRecords,
-	                    limit: _row.DailyAutoLoadRecordLimit
-	                },
-	                function () { console.log('--OK');  $timeout(vm.refresh,0); },
-	                function () { console.log('--Cancel'); }
-	                );
-
-	        }
+	            ToolsService.ChangeSearchTemplateMailSettings({
+	                id: _row.TemplateID,
+	                name: _row.TemplateName,
+	                load: _row.DailyAutoLoad,
+	                random: _row.DailyAutoLoadRandomRecords,
+	                limit: _row.DailyAutoLoadRecordLimit
+	            }, function () {
+	                console.log('--OK');$timeout(vm.refresh, 0);
+	            }, function () {
+	                console.log('--Cancel');
+	            });
+	        };
 
 	        vm.deleteThisRow = function ($event, _row) {
 	            $event.preventDefault();
 	            console.log(_row);
-	            
-	            GetResultsFactory.deletesearchtemplate(_row.TemplateID)
-	            .then(function (data)
-	            {
-	                if (data && data.result && data.result == "ERROR" && data.message)
-	                {
+
+	            GetResultsFactory.deletesearchtemplate(_row.TemplateID).then(function (data) {
+	                if (data && data.result && data.result == "ERROR" && data.message) {
 	                    toaster.pop('error', data.message);
 	                }
-	                if (data && data.result && data.result == "OK")
-	                {
+	                if (data && data.result && data.result == "OK") {
 	                    var _indx = vm.gridOptions.data.indexOf(_row);
 	                    vm.gridOptions.data.splice(_indx, 1);
-	                    toaster.pop('success', 'Template '+_row.TemplateName+' removed !');
+	                    toaster.pop('success', 'Template ' + _row.TemplateName + ' removed !');
 	                }
 	            });
+	        };
 
-
-
-
-	        }
-
-	        vm.changeAutoNotify = function ($event, _row)
-	        {
+	        vm.changeAutoNotify = function ($event, _row) {
 	            $event.preventDefault();
 	            console.log(_row);
 
-	            GetResultsFactory
-	                .updatesearchtemplate_mailsettings(_row.TemplateID, !_row.DailyAutoLoad, _row.DailyAutoLoadRandomRecords, 0 /* _row.DailyAutoLoadRecordLimit */ )
-	                .then(
-	                       function (data) {
-	                           if (data.result == "OK") { _row.DailyAutoLoad = !_row.DailyAutoLoad; _row.DailyAutoLoadRecordLimit = 0; }
-	                           if (data.result != "OK" && data.message) { toaster.pop('error', data.message); }
-	                       }
-	                   );
+	            GetResultsFactory.updatesearchtemplate_mailsettings(_row.TemplateID, !_row.DailyAutoLoad, _row.DailyAutoLoadRandomRecords, 0 /* _row.DailyAutoLoadRecordLimit */).then(function (data) {
+	                if (data.result == "OK") {
+	                    _row.DailyAutoLoad = !_row.DailyAutoLoad;_row.DailyAutoLoadRecordLimit = 0;
+	                }
+	                if (data.result != "OK" && data.message) {
+	                    toaster.pop('error', data.message);
+	                }
+	            });
+	        };
 
-	        }
-
-	        vm.searchThisRow = function ($event, _row)
-	        {
+	        vm.searchThisRow = function ($event, _row) {
 	            $event.preventDefault();
 	            console.log(_row);
 
-	            GetResultsFactory.getsearchtemplate(_row.TemplateID)
-	            .then(function (_data) {
+	            GetResultsFactory.getsearchtemplate(_row.TemplateID).then(function (_data) {
 	                console.log(_data);
 
-	                var _bustype = { id: _data.selectedlist, name: _data.selectedlist == 1 ? "NEW BUSINESS" : "ESTIMATED BUSINESS" }
+	                var _bustype = { id: _data.selectedlist, name: _data.selectedlist == 1 ? "NEW BUSINESS" : "ESTIMATED BUSINESS" };
 	                var _date_start = eval(_data.date_start.replace('/', '').replace('/', ''));
 	                var _date_end = eval(_data.date_end.replace('/', '').replace('/', ''));
-
-
 
 	                var _choices = ChoicesFactory.choices; //{};
 	                _choices.bustype = InfoFactory.bustypes[_data.selectedlist == 1 ? 0 : 1]; //         _bustype;
@@ -57657,119 +55115,88 @@ webpackJsonp([0],[
 	                _choices.chkPhoneNumbers = _data.WithPhones;
 	                _choices.chkEmails = _data.WithEmails;
 
-
-
-	/*
-	                _choices.date_start_ = new Date(_data.date_start_ticks);
-	                _choices.date_end_ = new Date(_data.date_end_ticks);
-
-	                _choices.date_start = moment(_choices.date_start_).format("MM/DD/YYYY");
-	                _choices.date_end = moment(_choices.date_end_).format("MM/DD/YYYY");
-	*/
+	                /*
+	                                _choices.date_start_ = new Date(_data.date_start_ticks);
+	                                _choices.date_end_ = new Date(_data.date_end_ticks);
+	                
+	                                _choices.date_start = moment(_choices.date_start_).format("MM/DD/YYYY");
+	                                _choices.date_end = moment(_choices.date_end_).format("MM/DD/YYYY");
+	                */
 
 	                _choices.date_start_ = moment(_data.date_start_ticks).toDate();
 	                _choices.date_end_ = moment(_data.date_end_ticks).toDate();
-
-
-
 
 	                _choices.rbdiBusiness = _data.rbdiBusiness;
 	                _choices.rbdiIndividual = _data.rbdiIndividual;
 	                _choices.rbdiUnknown = _data.rbdiUnknown;
 
-
 	                _choices.keywords = _data.KeyWords;
 
-
-	//                ChoicesFactory.choices = angular.extend({}, ChoicesFactory.choices, _choices);
+	                //                ChoicesFactory.choices = angular.extend({}, ChoicesFactory.choices, _choices);
 
 	                $state.go('search');
-
-
 	            });
+	        };
 
-
-
-
-	        }
-
-
-
-	        vm.gridOptions.onRegisterApi = function (gridApi)
-	        {
+	        vm.gridOptions.onRegisterApi = function (gridApi) {
 	            vm.gridApi = gridApi;
-	        }
+	        };
 
 	        function _afterregisterApi(gridApi) {
 	            gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
 	                if (vm.getPage) {
-	                    vm.getPage(newPage, pageSize).then(function () { });
+	                    vm.getPage(newPage, pageSize).then(function () {});
 	                }
 	            });
 	        }
 
-	//        vm.grid_height = 100;
+	        //        vm.grid_height = 100;
 
-	        vm.refresh=function()
-	        {
+	        vm.refresh = function () {
 	            vm._refresh = true;
-	            GetResultsFactory.getlisttemplates()
-	            .then(function (_data)
-	            {
+	            GetResultsFactory.getlisttemplates().then(function (_data) {
 	                console.log('templates', _data);
 
-	//              vm.gridOptions.data = _.col13dig2date(_data.templates);
+	                //              vm.gridOptions.data = _.col13dig2date(_data.templates);
 
 	                var _templates = _.col13dig2date(_data.templates);
-	                vm.gridOptions.data = _.map(_templates, function (_item) { return vm.addCriteriesColumn(_item); });
+	                vm.gridOptions.data = _.map(_templates, function (_item) {
+	                    return vm.addCriteriesColumn(_item);
+	                });
 
-
-	// 2017-02-05                var _len = vm.gridOptions.data.length;
-	// 2017-02-05               vm.gridOptions.minRowsToShow = _len + 3;
+	                // 2017-02-05                var _len = vm.gridOptions.data.length;
+	                // 2017-02-05               vm.gridOptions.minRowsToShow = _len + 3;
 
 	                vm._refresh = false;
-
-
 	            });
-	        }
-
+	        };
 
 	        vm.getPage = function (_page, _size) {
 	            var promise = GetResultsFactory.getonepagetemplates(_page, _size);
-	            promise.then(
-	            function (data) {
+	            promise.then(function (data) {
 	                vm.gridOptions.totalItems = data.cntrecords;
-
 
 	                //                vm.gridOptions.data = _.col13dig2date(data.records);
 	                var _records = _.col13dig2date(data.records);
-	                vm.gridOptions.data = _.map(_records, function (_item) { return vm.addCriteriesColumn(_item); });
-
-
+	                vm.gridOptions.data = _.map(_records, function (_item) {
+	                    return vm.addCriteriesColumn(_item);
+	                });
 
 	                //                vm.gridOptions.minRowsToShow = data.cntrecords + 3;
 
-	//                var _len = vm.gridOptions.data.length;
-	//                vm.gridOptions.minRowsToShow = _len + 3;
-
+	                //                var _len = vm.gridOptions.data.length;
+	                //                vm.gridOptions.minRowsToShow = _len + 3;
 
 
 	                //                var _templates = _.col13dig2date(_data.templates);
 	                //                vm.gridOptions.data = _.map(_templates, function (_item) { return vm.addCriteriesColumn(_item); });
-
-
-
-
-
 
 	            });
 
 	            return promise;
 	        };
 
-
-	        vm.addCriteriesColumn = function (_item)
-	        {
+	        vm.addCriteriesColumn = function (_item) {
 	            var _choices = {};
 
 	            /*
@@ -57792,64 +55219,69 @@ webpackJsonp([0],[
 	            _choices.chkOmit = true;
 	             */
 
-
-
-	//            _choices.states = _.map(_item.States.split(','), function (t) { return { shortname: t }; });
-	            _choices.states = _.map(_item.States.match(/[A-Z]{2}/g), function (t) { return { shortname: t }; });
-	            _choices.cities = _.map(_item.Cities.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) { var _arr = _itm.split(','); return { Name: _arr[0], State: _arr[1].trim() }; });
-	            _choices.zipcodes = _.filter(_item.ZipCodes.split(','), function (t) { return t.trim().length > 0; });
-	            _choices.areacodes = _.filter(_item.AreaCodes.split(','), function (t) { return t.trim().length > 0; });
-	            _choices.counties = _.map(_item.Counties.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) { var _arr = _itm.split(','); return { Name: _arr[0], State: _arr[1].trim() }; });
-
+	            //            _choices.states = _.map(_item.States.split(','), function (t) { return { shortname: t }; });
+	            _choices.states = _.map(_item.States.match(/[A-Z]{2}/g), function (t) {
+	                return { shortname: t };
+	            });
+	            _choices.cities = _.map(_item.Cities.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) {
+	                var _arr = _itm.split(',');return { Name: _arr[0], State: _arr[1].trim() };
+	            });
+	            _choices.zipcodes = _.filter(_item.ZipCodes.split(','), function (t) {
+	                return t.trim().length > 0;
+	            });
+	            _choices.areacodes = _.filter(_item.AreaCodes.split(','), function (t) {
+	                return t.trim().length > 0;
+	            });
+	            _choices.counties = _.map(_item.Counties.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) {
+	                var _arr = _itm.split(',');return { Name: _arr[0], State: _arr[1].trim() };
+	            });
 
 	            _choices.siccodes = [];
 	            var _pat_sic = /(\d{2})\s+(.+)\s*/;
-	            var _xarr = _.filter(_item.GroupSICCodes.split(','), function (t) { return _pat_sic.test(t);  });
-	            _choices.siccodes = _.map(_xarr, function (_itm) { var _arr = _itm.match(/(\d{2})\s+(.+)\s*/); return { code: _arr[1], name: _arr[2].trim() }; });
+	            var _xarr = _.filter(_item.GroupSICCodes.split(','), function (t) {
+	                return _pat_sic.test(t);
+	            });
+	            _choices.siccodes = _.map(_xarr, function (_itm) {
+	                var _arr = _itm.match(/(\d{2})\s+(.+)\s*/);return { code: _arr[1], name: _arr[2].trim() };
+	            });
 
-
-	            _choices.keywords = _.filter(_item.Keyword.split(','), function (t) { return t.trim().length > 0; });
+	            _choices.keywords = _.filter(_item.Keyword.split(','), function (t) {
+	                return t.trim().length > 0;
+	            });
 	            _choices.rbdiBusiness = /B/.test(_item.RBDI);
 	            _choices.rbdiIndividual = /R/.test(_item.RBDI);
 	            _choices.rbdiUnknown = _choices.rbdiBusiness && _choices.rbdiIndividual;
 
-
-
-
 	            _choices.zipForRadius = _item.ZipForRadius;
 	            _choices.radiusMiles = "";
 	            _choices.companysizes = [];
-	            _choices.salesvolumes = _.filter(_item.Sales.split(','), function (t) { return t.trim().length > 0; });
+	            _choices.salesvolumes = _.filter(_item.Sales.split(','), function (t) {
+	                return t.trim().length > 0;
+	            });
 	            _choices.chkContactNames = _item.WithContacts;
 	            _choices.chkPhoneNumbers = _item.WithPhones;
 	            _choices.chkEmails = _item.WithEmails;
 
-
-
-
 	            _item.Criteries = _choices;
 
 	            return _item;
-	        }
-
-
+	        };
 
 	        //        vm.refresh();
 
 
-
 	        activate();
 
-	        function activate() {  vm.getPage(1, vm.gridOptions.paginationPageSize).then( function () {  _afterregisterApi(vm.gridApi); } );    }
-
+	        function activate() {
+	            vm.getPage(1, vm.gridOptions.paginationPageSize).then(function () {
+	                _afterregisterApi(vm.gridApi);
+	            });
+	        }
 	    }
 	    _templatesController.$inject = ["$scope", "$state", "toaster", "$timeout", "_", "uiGridConstants", "uiGridPaginationService", "InfoFactory", "GetResultsFactory", "ChoicesFactory", "ToolsService"];
 
-
 	    return _templatesController;
-
-
-	}
+	};
 
 /***/ },
 /* 224 */
@@ -57875,45 +55307,32 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 	    /* @ngInject */
-	    function configRoutes($stateProvider)
-	    {
-	        $stateProvider.state('profile.queryhistory',
-	            {
-	                url: '/queryhistory',
-	                template: __webpack_require__(228),
-	                controller: __webpack_require__(229)(app),
-	                controllerAs: 'vm',
-	                authenticate: true
+	    function configRoutes($stateProvider) {
+	        $stateProvider.state('profile.queryhistory', {
+	            url: '/queryhistory',
+	            template: __webpack_require__(228),
+	            controller: __webpack_require__(229)(app),
+	            controllerAs: 'vm',
+	            authenticate: true
 
-	            });
+	        });
 
+	        $stateProvider.state('admin.queries', {
+	            url: '/user/queries',
+	            template: __webpack_require__(228),
+	            controller: __webpack_require__(229)(app),
+	            controllerAs: 'vm',
+	            authenticate: true,
+	            params: { username: null, backto: null }
 
-	        $stateProvider.state('admin.queries',
-	            {
-	                url: '/user/queries',
-	                template: __webpack_require__(228),
-	                controller: __webpack_require__(229)(app),
-	                controllerAs: 'vm',
-	                authenticate: true,
-	                params: { username: null, backto: null }
-
-	            });
-
-
-
+	        });
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 228 */
@@ -57927,232 +55346,177 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
-	    /* @ngInject */
+	module.exports = function (app) {
+	        /* @ngInject */
 
-	    function QueryHistoryController(
-	        $scope,$state,$stateParams,$timeout,
-	        uiGridConstants,uiGridPaginationService,
-	        InfoFactory,ChoicesFactory, QueryHistoryService, _, toaster, LoginService)
-	    {
-	        var vm = this;
-	        vm._backto = $stateParams.backto ? $stateParams.backto : "profile";
-	        vm._username = $stateParams.username;
+	        function QueryHistoryController($scope, $state, $stateParams, $timeout, uiGridConstants, uiGridPaginationService, InfoFactory, ChoicesFactory, QueryHistoryService, _, toaster, LoginService) {
+	                var vm = this;
+	                vm._backto = $stateParams.backto ? $stateParams.backto : "profile";
+	                vm._username = $stateParams.username;
 
+	                vm.grid_height = 100;
 
-	        vm.grid_height = 100;
+	                //$scope.gridScope = $scope;
 
+	                vm.rerun_ = function ($event, ent) {
 
-	        //$scope.gridScope = $scope;
+	                        $event.preventDefault();
+	                        $event.stopPropagation();
+	                        $scope.value = ent.ListId;
 
-	        vm.rerun_ = function ($event, ent) {
+	                        console.log('query>>>', ent);
+	                        return;
 
-	            $event.preventDefault();
-	            $event.stopPropagation();
-	            $scope.value = ent.ListId;
+	                        LoginService.getuserinfo().then(function (data) {
+	                                if (data.islogged) {
+	                                        QueryHistoryService.getQueryInfo(ent.ListId).then(function (data) {
+	                                                if (data.result == "OK") {
+	                                                        $scope.orderinfo = data.data;
+	                                                }
+	                                                if (data.result != "OK" && data.message) {
+	                                                        toaster.pop('error', data.message);
+	                                                }
+	                                        });
+	                                }
+	                        });
+	                };
 
+	                vm.rerun = function ($event, _row) {
+	                        $event.preventDefault();
+	                        console.log(_row);
 
-	            console.log('query>>>',ent);
-	            return;
+	                        QueryHistoryService.getUserQuery(_row.QueryID).then(function (_data) {
+	                                console.log(_data);
 
-	            LoginService.getuserinfo()
-	            .then(
-	            function (data) {
-	                if (data.islogged) {
-	                    QueryHistoryService.getQueryInfo(ent.ListId)
-	                    .then(
-	                    function (data) {
-	                        if (data.result == "OK") { $scope.orderinfo = data.data; }
-	                        if (data.result != "OK" && data.message) { toaster.pop('error', data.message); }
-	                    }
-	                    );
-	                }
-	            }
-	            );
+	                                var _bustype = { id: _data.selectedlist, name: _data.selectedlist == 1 ? "NEW BUSINESS" : "ESTIMATED BUSINESS" };
 
+	                                //                var _date_start = eval(_data.date_start.replace('/', '').replace('/', ''));
+	                                //                var _date_end = eval(_data.date_end.replace('/', '').replace('/', ''));
 
-	        };
+	                                //                var _date_start = eval("new " + (_data.date_start.replace('/', '').replace('/', '')));
+	                                //                var _date_end = eval("new " + (_data.date_end.replace('/', '').replace('/', '')));
 
 
-	        vm.rerun = function ($event, _row) {
-	            $event.preventDefault();
-	            console.log(_row);
+	                                _data.selectedlist = 1;
 
-	            QueryHistoryService.getUserQuery(_row.QueryID)
-	            .then(function (_data) {
-	                console.log(_data);
+	                                ChoicesFactory.clear_choices();
 
-	                var _bustype = { id: _data.selectedlist, name: _data.selectedlist == 1 ? "NEW BUSINESS" : "ESTIMATED BUSINESS" }
+	                                var _choices = ChoicesFactory.choices; //{};
+	                                _choices.bustype = InfoFactory.bustypes[_data.selectedlist == 1 ? 0 : 1]; //         _bustype;
+	                                _choices.cities = _data.Cities;
+	                                _choices.states = _data.States;
+	                                _choices.counties = _data.Counties;
+	                                _choices.zipcodes = _data.ZipCodes;
+	                                _choices.zipForRadius = _data.ZipForRadius;
+	                                _choices.radiusMiles = _data.Miles;
+	                                _choices.areacodes = _data.AreaCodes;
+	                                _choices.siccodes = _data.GroupSICCodes;
 
-	//                var _date_start = eval(_data.date_start.replace('/', '').replace('/', ''));
-	//                var _date_end = eval(_data.date_end.replace('/', '').replace('/', ''));
+	                                _choices.companysizes = _data.Employees;
+	                                _choices.salesvolumes = _data.Sales;
 
-	//                var _date_start = eval("new " + (_data.date_start.replace('/', '').replace('/', '')));
-	//                var _date_end = eval("new " + (_data.date_end.replace('/', '').replace('/', '')));
+	                                _choices.chkContactNames = _data.WithContacts;
+	                                _choices.chkPhoneNumbers = _data.WithPhones;
+	                                _choices.chkEmails = _data.WithEmails;
 
+	                                /*
+	                                                _choices.date_start_ = new Date(_data.date_start_ticks);
+	                                                _choices.date_end_ = new Date(_data.date_end_ticks);
+	                                
+	                                                _choices.date_start = moment(_choices.date_start_).format("MM/DD/YYYY");
+	                                                _choices.date_end = moment(_choices.date_end_).format("MM/DD/YYYY");
+	                                */
 
-	                _data.selectedlist = 1;
+	                                _choices.date_start_ = moment(_data.date_start_ticks).toDate();
+	                                _choices.date_end_ = moment(_data.date_end_ticks).toDate();
 
+	                                _choices.rbdiBusiness = _data.rbdiBusiness;
+	                                _choices.rbdiIndividual = _data.rbdiIndividual;
+	                                _choices.rbdiUnknown = _data.rbdiUnknown;
 
-	                ChoicesFactory.clear_choices();
+	                                _choices.keywords = _data.KeyWords;
 
-	                var _choices = ChoicesFactory.choices; //{};
-	                _choices.bustype = InfoFactory.bustypes[_data.selectedlist == 1 ? 0 : 1]; //         _bustype;
-	                _choices.cities = _data.Cities;
-	                _choices.states = _data.States;
-	                _choices.counties = _data.Counties;
-	                _choices.zipcodes = _data.ZipCodes;
-	                _choices.zipForRadius = _data.ZipForRadius;
-	                _choices.radiusMiles = _data.Miles;
-	                _choices.areacodes = _data.AreaCodes;
-	                _choices.siccodes = _data.GroupSICCodes;
+	                                //                ChoicesFactory.choices = angular.extend({}, ChoicesFactory.choices, _choices);
 
-	                _choices.companysizes = _data.Employees;
-	                _choices.salesvolumes = _data.Sales;
+	                                $state.go('search');
+	                        });
+	                };
 
-	                _choices.chkContactNames = _data.WithContacts;
-	                _choices.chkPhoneNumbers = _data.WithPhones;
-	                _choices.chkEmails = _data.WithEmails;
+	                //        $scope._records = [];
 
+	                vm.gridOptions = {};
+	                vm.gridOptions.appScopeProvider = vm;
 
+	                //        vm.gridOptions.data = '_records';
+	                vm.gridOptions.enableColumnResizing = true;
+	                vm.gridOptions.enableFiltering = false;
+	                vm.gridOptions.enableGridMenu = true;
+	                vm.gridOptions.showGridFooter = false;
 
-	/*
-	                _choices.date_start_ = new Date(_data.date_start_ticks);
-	                _choices.date_end_ = new Date(_data.date_end_ticks);
+	                vm.gridOptions.showColumnFooter = false;
+	                vm.gridOptions.showFooter = false;
 
-	                _choices.date_start = moment(_choices.date_start_).format("MM/DD/YYYY");
-	                _choices.date_end = moment(_choices.date_end_).format("MM/DD/YYYY");
-	*/
+	                //  agi   2017-02-04
+	                //        vm.gridOptions.enablePaginationControls = false;
 
-	                _choices.date_start_ = moment(_data.date_start_ticks).toDate();
-	                _choices.date_end_ = moment(_data.date_end_ticks).toDate();
 
+	                vm.gridOptions.enablePaging = true;
+	                vm.gridOptions.paginationPageSizes = [10, 25, 50, 100, 200];
+	                vm.gridOptions.paginationPageSize = 10;
+	                vm.gridOptions.useExternalPagination = true;
 
+	                //  agi 2017-02-05   begin
 
-	                _choices.rbdiBusiness = _data.rbdiBusiness;
-	                _choices.rbdiIndividual = _data.rbdiIndividual;
-	                _choices.rbdiUnknown = _data.rbdiUnknown;
+	                //        vm.gridOptions.enableColumnResizing = true;
+	                //        vm.gridOptions.enableFiltering = false;
+	                //        vm.gridOptions.enableGridMenu = true;
+	                //        vm.gridOptions.showGridFooter = false;
 
+	                //        vm.gridOptions.EnableSelectAll = true;
+	                vm.gridOptions.enableRowSelection = true;
+	                vm.gridOptions.multiSelect = false; //true;
 
-	                _choices.keywords = _data.KeyWords;
+	                vm.gridOptions.enableColumnMenus = false;
+	                vm.gridOptions.enableGridMenu = false;
 
+	                //        vm.gridOptions.showColumnFooter = false;
+	                //        vm.gridOptions.fastWatch = true;
 
-	//                ChoicesFactory.choices = angular.extend({}, ChoicesFactory.choices, _choices);
 
-	                $state.go('search');
+	                //        vm.gridOptions.enablePaging = true;
+	                //        vm.gridOptions.paginationPageSizes = [5, 10, 25, 50, 75, 100, 200];
+	                //        vm.gridOptions.paginationPageSize = 25;
+	                //        vm.gridOptions.useExternalPagination = true;
 
 
-	            });
+	                //  agi 2017-02-05   end
 
 
+	                var boolColTemplate = '<div class="text-xs-center">{{COL_FIELD == true  ? "+" : ""}}</div>';
+	                var ColPhonesTemplate = '<div>{{ row.entity.WithPhones }}</div>';
+	                boolColTemplate = __webpack_require__(230);
 
-
-	        }
-
-
-
-
-
-	//        $scope._records = [];
-
-	        vm.gridOptions = {};
-	        vm.gridOptions.appScopeProvider = vm;
-
-	//        vm.gridOptions.data = '_records';
-	        vm.gridOptions.enableColumnResizing = true;
-	        vm.gridOptions.enableFiltering = false;
-	        vm.gridOptions.enableGridMenu = true;
-	        vm.gridOptions.showGridFooter = false;
-
-
-	        vm.gridOptions.showColumnFooter = false;
-	        vm.gridOptions.showFooter = false;
-
-	        //  agi   2017-02-04
-	//        vm.gridOptions.enablePaginationControls = false;
-
-
-
-	        vm.gridOptions.enablePaging = true;
-	        vm.gridOptions.paginationPageSizes = [10,25,50, 100, 200];
-	        vm.gridOptions.paginationPageSize = 10;
-	        vm.gridOptions.useExternalPagination = true;
-
-
-	        //  agi 2017-02-05   begin
-
-	//        vm.gridOptions.enableColumnResizing = true;
-	//        vm.gridOptions.enableFiltering = false;
-	//        vm.gridOptions.enableGridMenu = true;
-	//        vm.gridOptions.showGridFooter = false;
-
-	//        vm.gridOptions.EnableSelectAll = true;
-	        vm.gridOptions.enableRowSelection = true;
-	        vm.gridOptions.multiSelect = false; //true;
-
-	        vm.gridOptions.enableColumnMenus = false;
-	        vm.gridOptions.enableGridMenu = false;
-
-	//        vm.gridOptions.showColumnFooter = false;
-	//        vm.gridOptions.fastWatch = true;
-
-
-	//        vm.gridOptions.enablePaging = true;
-	//        vm.gridOptions.paginationPageSizes = [5, 10, 25, 50, 75, 100, 200];
-	//        vm.gridOptions.paginationPageSize = 25;
-	//        vm.gridOptions.useExternalPagination = true;
-
-
-	        //  agi 2017-02-05   end
-
-
-
-
-
-
-
-
-
-	        var boolColTemplate = '<div class="text-xs-center">{{COL_FIELD == true  ? "+" : ""}}</div>';
-	        var ColPhonesTemplate = '<div>{{ row.entity.WithPhones }}</div>';
-	        boolColTemplate = __webpack_require__(230);
-
-	        vm.gridOptions.columnDefs =
-	            [
-	                                {
-	                                    name: ' ',
-	                                    displayName: 'Actions'
-	                                    //                    , cellTemplate: require('./cell-template.tpl.html')
-	                    , cellTemplate: __webpack_require__(231)
-	                                     //, pinnedLeft: true
-	                                    , width: 150
-	                                },
-
-	                { name: 'QueryID', displayName: 'Query ID', visible: false },
-
-	                { name: 'ListId', displayName: 'List ID' , visible: false},
-	                { name: 'UserName', displayName: 'User Name', width: 200, visible: false },
-	//                "UserID": "34b6d23c-7ef3-4a26-8115-a2d8ae34b102", 
+	                vm.gridOptions.columnDefs = [{
+	                        name: ' ',
+	                        displayName: 'Actions'
+	                        //                    , cellTemplate: require('./cell-template.tpl.html')
+	                        , cellTemplate: __webpack_require__(231)
+	                        //, pinnedLeft: true
+	                        , width: 150
+	                }, { name: 'QueryID', displayName: 'Query ID', visible: false }, { name: 'ListId', displayName: 'List ID', visible: false }, { name: 'UserName', displayName: 'User Name', width: 200, visible: false },
+	                //                "UserID": "34b6d23c-7ef3-4a26-8115-a2d8ae34b102", 
 	                { name: "ListName", displayname: 'List Name', width: 150 /*, pinnedLeft: true*/ },
-	//                "ListCode": 1, 
-	                { name: "Count", displayname: 'Record Count', width: 100 },
-	                { name: "BeginDate", visible: true, displayname: 'Begin Date', width: 150 },
-	                { name: "EndDate", visible: true, displayname: 'End Date', width: 150 },
-
-
-	                {
-	                    field: '_criteria',
-	                    visible: true,
-	                    displayName: 'Search Criteria',
-	                    cellTemplate: __webpack_require__(232),
-	                    width: 720
+	                //                "ListCode": 1, 
+	                { name: "Count", displayname: 'Record Count', width: 100 }, { name: "BeginDate", visible: true, displayname: 'Begin Date', width: 150 }, { name: "EndDate", visible: true, displayname: 'End Date', width: 150 }, {
+	                        field: '_criteria',
+	                        visible: true,
+	                        displayName: 'Search Criteria',
+	                        cellTemplate: __webpack_require__(232),
+	                        width: 720
 	                }
-
 
 	                /*
-
-	                ,
+	                  ,
 	                { name: "States", visible: true, displayname: 'States', width: 150 },
 	                { name: "Cities", visible: true, displayname: 'Cities', width: 150 },
 	                { name: "ZipCodes",  visible: true, displayname: 'Zip Codes', width: 150 },
@@ -58166,152 +55530,135 @@ webpackJsonp([0],[
 	                { name: "Miles", visible: true, displayname: 'Miles', width: 100 },
 	                { name: "ZipForRadius", visible: true, displayname: 'Zip For Radius', width: 100 },
 	                { name: "Keyword", visible: true, width: 200 },
-
-	                { name : "PaymentDate",visible: false}, 
+	                  { name : "PaymentDate",visible: false}, 
 	                { name : "Amount",visible: false}, 
 	                { name : "PaymentMethod",visible: false}, 
 	                { name : "InvoiceNumber",visible: false}, 
 	                { name: "Description", visible: false },
-
-	                { name: "WithContacts", visible: true, cellTemplate: boolColTemplate , displayname: 'With Contacts', width: 150 },
+	                  { name: "WithContacts", visible: true, cellTemplate: boolColTemplate , displayname: 'With Contacts', width: 150 },
 	                { name: "WithPhones", visible: true, cellTemplate: boolColTemplate, displayname: 'With Phones', width: 150 },
 	                { name: "WithEmails", visible: true, cellTemplate: boolColTemplate, displayname: 'With Phones', width: 150 }
+	                  */
+	                ];
 
-	                */
-	            ];
+	                vm.gridOptions.rowIdentity = function (row) {
+	                        return row.QueryID;
+	                };
+	                vm.gridOptions.getRowIdentity = function (row) {
+	                        return row.QueryID;
+	                };
 
+	                vm.gridOptions.onRegisterApi = function (gridApi) {
+	                        vm.gridApi = gridApi;
 
+	                        /*
+	                          gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
+	                            if (vm.getPage)
+	                            {
+	                                vm.getPage(newPage, pageSize).then(function () { });
+	                            }
+	                        });
+	                           */
+	                };
 
-
-	        vm.gridOptions.rowIdentity = function (row) {
-	            return row.QueryID;
-	        };
-	        vm.gridOptions.getRowIdentity = function (row) {
-	            return row.QueryID;
-	        };
-
-	        vm.gridOptions.onRegisterApi = function (gridApi)
-	        {
-	            vm.gridApi = gridApi;
-
-	            /*
-
-	            gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
-	                if (vm.getPage)
-	                {
-	                    vm.getPage(newPage, pageSize).then(function () { });
+	                function _afterregisterApi(gridApi) {
+	                        gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
+	                                if (vm.getPage) {
+	                                        vm.getPage(newPage, pageSize).then(function () {});
+	                                }
+	                        });
 	                }
-	            });
 
-	             */
+	                vm.addCriteriesColumn = function (_item) {
+	                        var _choices = {};
 
-	        };
+	                        _choices.states = _.map(_item.States.match(/[A-Z]{2}/g), function (t) {
+	                                return { shortname: t };
+	                        });
+	                        _choices.cities = _.map(_item.Cities.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) {
+	                                var _arr = _itm.split(',');return { Name: _arr[0], State: _arr[1].trim() };
+	                        });
+	                        _choices.zipcodes = _.filter(_item.ZipCodes.split(','), function (t) {
+	                                return t.trim().length > 0;
+	                        });
+	                        _choices.areacodes = _.filter(_item.AreaCodes.split(','), function (t) {
+	                                return t.trim().length > 0;
+	                        });
+	                        _choices.counties = _.map(_item.Counties.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) {
+	                                var _arr = _itm.split(',');return { Name: _arr[0], State: _arr[1].trim() };
+	                        });
+
+	                        _choices.siccodes = [];
+	                        var _pat_sic = /(\d{2})\s+(.+)\s*/;
+	                        var _xarr = _.filter(_item.GroupSICCodes.split(','), function (t) {
+	                                return _pat_sic.test(t);
+	                        });
+	                        _choices.siccodes = _.map(_xarr, function (_itm) {
+	                                var _arr = _itm.match(/(\d{2})\s+(.+)\s*/);return { code: _arr[1], name: _arr[2].trim() };
+	                        });
+
+	                        _choices.keywords = _.filter(_item.Keyword.split(','), function (t) {
+	                                return t.trim().length > 0;
+	                        });
+	                        _choices.rbdiBusiness = /B/.test(_item.RBDI);
+	                        _choices.rbdiIndividual = /R/.test(_item.RBDI);
+	                        _choices.rbdiUnknown = _choices.rbdiBusiness && _choices.rbdiIndividual;
+
+	                        _choices.zipForRadius = _item.ZipForRadius;
+	                        _choices.radiusMiles = _item.Miles;
+	                        _choices.companysizes = [];
+	                        _choices.salesvolumes = _.filter(_item.Sales.split(','), function (t) {
+	                                return t.trim().length > 0;
+	                        });
+	                        _choices.chkContactNames = _item.WithContacts;
+	                        _choices.chkPhoneNumbers = _item.WithPhones;
+	                        _choices.chkEmails = _item.WithEmails;
+
+	                        _item.Criteries = _choices;
+
+	                        return _item;
+	                };
+
+	                vm.getPage = function (_page, _size) {
+	                        var promise = QueryHistoryService.getPage(_page, _size, vm._username);
+	                        promise.then(function (data) {
+	                                vm.gridOptions.totalItems = data.cntrecords;
+
+	                                //                vm.gridOptions.data = _.col13dig2date(data.records);
+	                                var _records = _.col13dig2date(data.records);
+	                                vm.gridOptions.data = _.map(_records, function (_item) {
+	                                        return vm.addCriteriesColumn(_item);
+	                                });
+
+	                                //                vm.gridOptions.minRowsToShow = data.cntrecords + 3;
+
+	                                //  agi                var _len = vm.gridOptions.data.length;
+	                                //  2017-02-07              vm.gridOptions.minRowsToShow = _len + 3;
 
 
+	                                //                var _templates = _.col13dig2date(_data.templates);
+	                                //                vm.gridOptions.data = _.map(_templates, function (_item) { return vm.addCriteriesColumn(_item); });
 
-	        function _afterregisterApi(gridApi) {
-	            gridApi.pagination.on.paginationChanged($scope, function (newPage, pageSize) {
-	                if (vm.getPage) {
-	                    vm.getPage(newPage, pageSize).then(function () { });
+	                        });
+
+	                        return promise;
+	                };
+
+	                vm.gridData = [];
+
+	                activate();
+
+	                function activate() {
+
+	                        vm.getPage(1, vm.gridOptions.paginationPageSize).then(function () {
+	                                _afterregisterApi(vm.gridApi);
+	                        });
 	                }
-	            });
 	        }
+	        QueryHistoryController.$inject = ["$scope", "$state", "$stateParams", "$timeout", "uiGridConstants", "uiGridPaginationService", "InfoFactory", "ChoicesFactory", "QueryHistoryService", "_", "toaster", "LoginService"];
 
-
-	        vm.addCriteriesColumn = function (_item) {
-	            var _choices = {};
-
-	            _choices.states = _.map(_item.States.match(/[A-Z]{2}/g), function (t) { return { shortname: t }; });
-	            _choices.cities = _.map(_item.Cities.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) { var _arr = _itm.split(','); return { Name: _arr[0], State: _arr[1].trim() }; });
-	            _choices.zipcodes = _.filter(_item.ZipCodes.split(','), function (t) { return t.trim().length > 0; });
-	            _choices.areacodes = _.filter(_item.AreaCodes.split(','), function (t) { return t.trim().length > 0; });
-	            _choices.counties = _.map(_item.Counties.match(/[^,.]+?,\s*[A-Z]{2}/g), function (_itm) { var _arr = _itm.split(','); return { Name: _arr[0], State: _arr[1].trim() }; });
-
-	            _choices.siccodes = [];
-	            var _pat_sic = /(\d{2})\s+(.+)\s*/;
-	            var _xarr = _.filter(_item.GroupSICCodes.split(','), function (t) { return _pat_sic.test(t); });
-	            _choices.siccodes = _.map(_xarr, function (_itm) { var _arr = _itm.match(/(\d{2})\s+(.+)\s*/); return { code: _arr[1], name: _arr[2].trim() }; });
-
-	            _choices.keywords = _.filter(_item.Keyword.split(','), function (t) { return t.trim().length > 0; });
-	            _choices.rbdiBusiness = /B/.test(_item.RBDI);
-	            _choices.rbdiIndividual = /R/.test(_item.RBDI);
-	            _choices.rbdiUnknown = _choices.rbdiBusiness && _choices.rbdiIndividual;
-
-	            _choices.zipForRadius = _item.ZipForRadius;
-	            _choices.radiusMiles = _item.Miles;
-	            _choices.companysizes = [];
-	            _choices.salesvolumes = _.filter(_item.Sales.split(','), function (t) { return t.trim().length > 0; });
-	            _choices.chkContactNames = _item.WithContacts;
-	            _choices.chkPhoneNumbers = _item.WithPhones;
-	            _choices.chkEmails = _item.WithEmails;
-
-	            _item.Criteries = _choices;
-
-	            return _item;
-	        }
-
-
-
-	        vm.getPage = function (_page, _size) {
-	            var promise = QueryHistoryService.getPage(_page, _size, vm._username);
-	            promise.then(
-	            function (data) {
-	                vm.gridOptions.totalItems = data.cntrecords;
-
-
-	//                vm.gridOptions.data = _.col13dig2date(data.records);
-	                var _records = _.col13dig2date(data.records);
-	                vm.gridOptions.data = _.map(_records, function (_item) { return vm.addCriteriesColumn(_item); });
-
-
-
-	//                vm.gridOptions.minRowsToShow = data.cntrecords + 3;
-
-	//  agi                var _len = vm.gridOptions.data.length;
-	//  2017-02-07              vm.gridOptions.minRowsToShow = _len + 3;
-
-
-
-	//                var _templates = _.col13dig2date(_data.templates);
-	//                vm.gridOptions.data = _.map(_templates, function (_item) { return vm.addCriteriesColumn(_item); });
-
-
-
-
-
-
-	            });
-
-	            return promise;
-	        };
-
-
-	        vm.gridData = [];
-
-
-	        activate();
-
-	        function activate() {
-
-	            vm.getPage(1, vm.gridOptions.paginationPageSize)
-	              .then(
-	                  function ()
-	                  {
-	                      _afterregisterApi(vm.gridApi);
-	                  }
-
-	                  );
-
-
-	        }
-	    }
-	    QueryHistoryController.$inject = ["$scope", "$state", "$stateParams", "$timeout", "uiGridConstants", "uiGridPaginationService", "InfoFactory", "ChoicesFactory", "QueryHistoryService", "_", "toaster", "LoginService"];
-
-
-	    return QueryHistoryController;
-
-
-	}
+	        return QueryHistoryController;
+	};
 
 /***/ },
 /* 230 */
@@ -58339,106 +55686,66 @@ webpackJsonp([0],[
 
 	__webpack_require__(234);
 
-
-	module.exports = function (app)
-	{
-
-
-
-
-
-
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	    function configRoutes($stateProvider)
-	    {
+	    function configRoutes($stateProvider) {
 
 	        var _views = {};
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(236), controller: __webpack_require__(255)(app), controllerAs: 'vm' }
-	            };
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(236), controller: __webpack_require__(255)(app), controllerAs: 'vm' }
+	        };
 	        $stateProvider.state('selectsubscriptiontype', { parent: 'root', url: 'selectsubscriptiontype', views: _views });
 
-
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(256), controller: __webpack_require__(257)(app), controllerAs: 'vm' }
-	            };
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(256), controller: __webpack_require__(257)(app), controllerAs: 'vm' }
+	        };
 	        $stateProvider.state('createsubscription', { parent: 'root', url: 'createsubscription', views: _views });
 
-
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(260), controller: __webpack_require__(261)(app), controllerAs: 'vm' }
-	            };
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(260), controller: __webpack_require__(261)(app), controllerAs: 'vm' }
+	        };
 	        $stateProvider.state('createpaypalsubscription', { parent: 'root', url: 'createpaypalsubscription', views: _views });
 
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(262), controller: __webpack_require__(263)(app), controllerAs: 'vm' }
+	        };
+	        $stateProvider.state('successcreatepaypalsubscription', { parent: 'root', url: 'successcreatepaypalsubscription', views: _views, authenticate: true, params: { token: "", PayerID: "" } });
 
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(262), controller: __webpack_require__(263)(app), controllerAs: 'vm' }
-	            };
-	        $stateProvider.state('successcreatepaypalsubscription', { parent: 'root', url: 'successcreatepaypalsubscription', views: _views, authenticate: true  ,    params: { token: "", PayerID: "" } });
-
-
-
-
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(264), controller: __webpack_require__(266)(app), controllerAs: 'vm' }
-	            };
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(264), controller: __webpack_require__(266)(app), controllerAs: 'vm' }
+	        };
 	        $stateProvider.state('createbitpaysubscription', { parent: 'root', url: 'create-bitpay-subscription', views: _views, authenticate: true });
 
-
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(267), controller: __webpack_require__(268)(app), controllerAs: 'vm' }
-	            };
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(267), controller: __webpack_require__(268)(app), controllerAs: 'vm' }
+	        };
 	        $stateProvider.state('createbitcoinmonthlyfee', { parent: 'root', url: 'create-bitcoin-monthly-fee', views: _views, authenticate: true });
 
-
-
-
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(269), controller: __webpack_require__(270)(app), controllerAs: 'vm' }
-	            };
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(269), controller: __webpack_require__(270)(app), controllerAs: 'vm' }
+	        };
 
 	        $stateProvider.state('commitbitcoinuserpayment', { parent: 'root', url: 'commit-bitcoin-user-payment', views: _views, authenticate: true });
 
-
-
-
-
-	        _views =
-	            {
-	                'header@root': { template: '<top-header-search></top-header-search>' },
-	                'content@root': { template: __webpack_require__(271), controller: __webpack_require__(272)(app), controllerAs: 'vm' }
-	            };
+	        _views = {
+	            'header@root': { template: '<top-header-search></top-header-search>' },
+	            'content@root': { template: __webpack_require__(271), controller: __webpack_require__(272)(app), controllerAs: 'vm' }
+	        };
 	        $stateProvider.state('getsubscriptionfullinfo', { parent: 'root', url: 'getsubscriptionfullinfo', views: _views, authenticate: true });
-
-
-
-
-
-
-
 	    }
 	    configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(configRoutes);
-	}
-
-
+	};
 
 	/*
 	*        $stateProvider.state('selectsubscriptiontype', { url: 'selectsubscriptiontype', templateUrl: '../SPA/app/templates/selectsubscriptiontype.html', controller: 'SelectSubscriptionTypeController', controllerAs: 'vm' });
@@ -58575,28 +55882,18 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 	    /* @ngInject */
-	    function SelectSubscriptionTypeController($scope)
-	    {
+	    function SelectSubscriptionTypeController($scope) {
 
 	        activate();
 
-	        function activate() { }
+	        function activate() {}
 	    }
 	    SelectSubscriptionTypeController.$inject = ["$scope"];
 
-
-
 	    return SelectSubscriptionTypeController;
-
-
-
-	}
-
-
+	};
 
 /***/ },
 /* 256 */
@@ -58610,108 +55907,81 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function CreateSubscriptionController($scope, $state, $http, $q,
-	        $timeout, _, $sessionStorage, toaster, FFD_CONST,
-	        LoginService ,createDialog /*, SubscrService */ )
-	    {
+	    function CreateSubscriptionController($scope, $state, $http, $q, $timeout, _, $sessionStorage, toaster, FFD_CONST, LoginService, createDialog /*, SubscrService */) {
 	        var vm = this;
 
 	        vm.is_success = false;
 	        vm.in_process = false;
 
+	        //        vm.activate_dialog = SubscriptionService.ShowFaq;
 
-	        
 
-	//        vm.activate_dialog = SubscriptionService.ShowFaq;
-
-	        
 	        /*
 	         */
-	        vm.activate_dialog = function ()
-	        {
-	//            SubscrService.ShowFaq();
+	        vm.activate_dialog = function () {
+	            //            SubscrService.ShowFaq();
 
 
-	            createDialog
-	                (
-	                    {
-	                        id: 'SpecialOffer',
-	                        css: { top: '5vh', margin: '0 auto' },
-	                        template: __webpack_require__(258),
-	                        footerTemplate: __webpack_require__(259),
-	                        backdrop: true,
-	                        success:
-	                            {
-	                                label: 'Close',
-	                                fn: function () {  }
-	                            }
-	                    }
-	                );
-	 
-	        }
-	        
-
-
-
-
+	            createDialog({
+	                id: 'SpecialOffer',
+	                css: { top: '5vh', margin: '0 auto' },
+	                template: __webpack_require__(258),
+	                footerTemplate: __webpack_require__(259),
+	                backdrop: true,
+	                success: {
+	                    label: 'Close',
+	                    fn: function fn() {}
+	                }
+	            });
+	        };
 
 	        vm.createsubscr = function ($event) {
 	            $event.preventDefault();
-	//            $sessionStorage["_subscriptiondata"] = vm.regdata;
+	            //            $sessionStorage["_subscriptiondata"] = vm.regdata;
 	            vm.in_process = true;
 
-	            LoginService.createsubscription(vm.regdata)
-	             .then(function (data)
-	             {
-	                 vm.in_process = false;
+	            LoginService.createsubscription(vm.regdata).then(function (data) {
+	                vm.in_process = false;
 
-	                 if (data.result == 'ERROR') { toaster.pop('error', data.message); }
-	                 if (data.result == 'OK')
-	                 {
+	                if (data.result == 'ERROR') {
+	                    toaster.pop('error', data.message);
+	                }
+	                if (data.result == 'OK') {
 
-	                     window.dataLayer = window.dataLayer || [];
-	                     window.dataLayer.push({
-	                         'event': 'SuccessSubscriptionEvent',
-	                         'eventCategory': 'Subscriptions',
-	                         'eventAction': 'Success Credit Card Subscription',
-	                         'eventLabel': location.pathname
-	                     });
+	                    window.dataLayer = window.dataLayer || [];
+	                    window.dataLayer.push({
+	                        'event': 'SuccessSubscriptionEvent',
+	                        'eventCategory': 'Subscriptions',
+	                        'eventAction': 'Success Credit Card Subscription',
+	                        'eventLabel': location.pathname
+	                    });
 
-
-
-	                     vm.is_success = true;
-	                     return;
-	                     toaster.pop(
-	                         {
-	                             type: 'success',
-	                             body: 'Your transaction was successful',
-	                             timeout: 0,
-	                             onHideCallback: function () { $state.go('search'); }
-	                         });
-
-	                     
-	                 }
-	             });
+	                    vm.is_success = true;
+	                    return;
+	                    toaster.pop({
+	                        type: 'success',
+	                        body: 'Your transaction was successful',
+	                        timeout: 0,
+	                        onHideCallback: function onHideCallback() {
+	                            $state.go('search');
+	                        }
+	                    });
+	                }
+	            });
 	        };
-
-
 
 	        vm.initform = InitForm;
 
 	        vm.countries = [];
 
-	        vm.initform().then
-	            (
-	        function (data) {
+	        vm.initform().then(function (data) {
 	            vm.ledStartDate = data._ledStartDate;
 	            vm.ledEndDate = data._ledEndDate;
 	            vm.ledFee = data._ledFee;
-	        }
-	        );
+	        });
 
 	        /*       
 	                $scope.countries =
@@ -58721,400 +55991,321 @@ webpackJsonp([0],[
 	                     ];
 	          */
 
-	        vm._months =
-	            [
-	            { name: "Month", value: "" },
-
-	            { name: "January", value: "01" },
-	            { name: "February", value: "02" },
-	            { name: "March", value: "03" },
-	            { name: "April", value: "04" },
-	            { name: "May", value: "05" },
-	            { name: "June", value: "06" },
-	            { name: "July", value: "07" },
-	            { name: "August", value: "08" },
-	            { name: "September", value: "09" },
-	            { name: "October", value: "10" },
-	            { name: "November", value: "11" },
-	            { name: "December", value: "12" },
-	            ];
-
-
+	        vm._months = [{ name: "Month", value: "" }, { name: "January", value: "01" }, { name: "February", value: "02" }, { name: "March", value: "03" }, { name: "April", value: "04" }, { name: "May", value: "05" }, { name: "June", value: "06" }, { name: "July", value: "07" }, { name: "August", value: "08" }, { name: "September", value: "09" }, { name: "October", value: "10" }, { name: "November", value: "11" }, { name: "December", value: "12" }];
 
 	        vm.options = { removeChromeAutoComplete: true };
 
 	        vm._years = [{ name: "Year", value: "" }];
 
-
 	        var _currYear = new Date().getFullYear();
 
 	        for (var i = _currYear; i < _currYear + 10; i++) {
-	            vm._years.push({name:i , value: i });
+	            vm._years.push({ name: i, value: i });
 	        }
 
+	        $timeout(function () {
+	            angular.element('input[disabled]').each(function () {
+	                angular.element(this).removeAttr('disabled');
+	            });
+	        }, 3000);
 
-	        $timeout(
-	            function () {
-	                angular.element('input[disabled]').each(function () { angular.element(this).removeAttr('disabled'); });
-	            }, 3000);
+	        vm.regdata = { Country: 'United States' };
 
+	        vm.regdataFields = [{
+	            key: 'CreditCard',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Credit Card Number',
+	                placeholder: 'Enter your credit card number',
+	                required: true,
+	                minlength: 14,
+	                maxlength: 16,
+	                disabled: true
+	            }
+	        },
 
-	        vm.regdata = { Country: 'United States'};
-
-	        vm.regdataFields =
-	             [
-	                 {
-	                     key: 'CreditCard',
-	                     type: "bs4-horizontalInput",
-	                     templateOptions: {
-	                         type: 'text',
-	                         label: 'Credit Card Number',
-	                         placeholder: 'Enter your credit card number',
-	                         required: true,
-	                         minlength: 14,
-	                         maxlength: 16,
-	                         disabled:true
-	                     }
-	                 },
-
-
-
-
-	/*
-
-	            {
-	                key: 'ExpDate',
-	                type: 'bs4-horizontalExpDate',
-	                templateOptions:
+	        /*
+	        
 	                    {
-	                        label: 'Exp Date',
-	                        required: true
-	                    }
-	            },
-	*/
-
-
-	/*
-	            {
-	                key: 'ExpDate',
-	                type: 'bs4-horizontalMonthPicker',
-	                templateOptions:
-	                    {
-	                        label: 'Expiration Date',
-	                        required: true,
-	                        placeholder: 'Enter expiration date',
-	                    }
-
-
-
-	                , watcher: {
-	                    listener: function (field, newValue, oldValue, scope, stopWatching) {
-	                        if (newValue) {
-
-	                            console.log(newValue);
-	                            vm.regdata.CardYear = newValue.getFullYear();
-	                            vm.regdata.CardMonth = newValue.getMonth()+1;
-	                        }
-	                    }
-	                }
-
-
-
-
-	            },
-	*/
-
-
-
-
-	            {
-	                className: "form-group exp-month-year"
-	                , fieldGroup:
-	                    [
-	                        /*
-	                         
-	                         
-	                        {
-	                            className: 'col-md-3  hidden-sm-down text-sm-right',
-	                            template: "<label class='control-label'>Expiration Date*&nbsp;</label>"
-	                        },
-	                        */
-
-	                        {
-	                            className: 'col-md-5',
-	                            type: 'select',
-	                            key: 'CardMonth'
-	                            ,defaultValue:''
-	                                , wrapper: ['ngMessages', 'bs4hasError']
-	                            , templateOptions:
+	                        key: 'ExpDate',
+	                        type: 'bs4-horizontalExpDate',
+	                        templateOptions:
 	                            {
-	//                                label: 'End date month',
-	                                labelProp: 'name',
-	                                valueProp: 'value',
-	                                options: vm._months,
+	                                label: 'Exp Date',
 	                                required: true
 	                            }
-	                        },
-	                        {
-	                            className: 'col-md-5',
-	                            type: 'select',
-	                            key: 'CardYear'
-	                            , defaultValue: ''
-	                                , wrapper: ['ngMessages', 'bs4hasError']
-	                            , templateOptions:
-	                                {
-	//                                    label: 'End date year',
-	                                    labelProp: 'name',
-	                                    valueProp: 'value',
-	                                    options: vm._years,
-	                                    required: true
+	                    },
+	        */
+
+	        /*
+	                    {
+	                        key: 'ExpDate',
+	                        type: 'bs4-horizontalMonthPicker',
+	                        templateOptions:
+	                            {
+	                                label: 'Expiration Date',
+	                                required: true,
+	                                placeholder: 'Enter expiration date',
+	                            }
+	        
+	        
+	        
+	                        , watcher: {
+	                            listener: function (field, newValue, oldValue, scope, stopWatching) {
+	                                if (newValue) {
+	        
+	                                    console.log(newValue);
+	                                    vm.regdata.CardYear = newValue.getFullYear();
+	                                    vm.regdata.CardMonth = newValue.getMonth()+1;
 	                                }
+	                            }
 	                        }
+	        
+	        
+	        
+	        
+	                    },
+	        */
 
-
-
-
-	                    ]
-	                    , wrapper: ['horizontalBs4Label']
-	                    , templateOptions: { label: "Expiration Date*" }
-
+	        {
+	            className: "form-group exp-month-year",
+	            fieldGroup: [
+	            /*
+	             
+	             
+	            {
+	                className: 'col-md-3  hidden-sm-down text-sm-right',
+	                template: "<label class='control-label'>Expiration Date*&nbsp;</label>"
 	            },
-
-
-	/*
+	            */
 
 	            {
-	                key: 'CardYear',
-	                type: 'bs4-horizontalSelect',
-	                templateOptions: {
-	                    label: 'End date year',
-	                    labelProp: 'value',
-	                    valueProp: 'value',
-	                    options: vm._years,
-	                    required: true
-	                }
-	            },
-
-
-
-
-
-
-
-
-	            {
+	                className: 'col-md-5',
+	                type: 'select',
 	                key: 'CardMonth',
-	                type: 'bs4-horizontalSelect',
+	                defaultValue: '',
+	                wrapper: ['ngMessages', 'bs4hasError'],
 	                templateOptions: {
-	                    label: 'End date month',
+	                    //                                label: 'End date month',
 	                    labelProp: 'name',
 	                    valueProp: 'value',
 	                    options: vm._months,
 	                    required: true
 	                }
-	            },
-
-	*/
-
-
-	            {
-	                key: 'CVV',
-	                type: "bs4-horizontalInput",
+	            }, {
+	                className: 'col-md-5',
+	                type: 'select',
+	                key: 'CardYear',
+	                defaultValue: '',
+	                wrapper: ['ngMessages', 'bs4hasError'],
 	                templateOptions: {
-	                    type: 'password',
-	                    label: 'Verification Code',
-	                    placeholder: 'Enter verification code',
-	                    required: true,
-	                    minlength: 3,
-	                    maxlength: 4,
-	                    disabled:true
-	                    }
-	            },
-
-	            {
-	                key: 'CompanyName',
-	                type: "bs4-horizontalInput",
-	                templateOptions:
-	                    {
-	                        type: 'text',
-	                        label: 'Company Name',
-	                        placeholder: 'Enter Company name',
-	//                        minlength: 5,
-	                        maxlength: 40
-
-	                    }
-	            },
-
-
-	            {
-	                key: 'Name',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Name',
-	                    placeholder: 'Enter Name (exactly as it appears on card)',
-	                    maxlength: 30,
+	                    //                                    label: 'End date year',
+	                    labelProp: 'name',
+	                    valueProp: 'value',
+	                    options: vm._years,
 	                    required: true
 	                }
+	            }],
+	            wrapper: ['horizontalBs4Label'],
+	            templateOptions: { label: "Expiration Date*" }
 
+	        },
 
-
-	                , watcher:
+	        /*
+	        
 	                    {
-	                    listener: function (field, newValue, oldValue, scope, stopWatching)
+	                        key: 'CardYear',
+	                        type: 'bs4-horizontalSelect',
+	                        templateOptions: {
+	                            label: 'End date year',
+	                            labelProp: 'value',
+	                            valueProp: 'value',
+	                            options: vm._years,
+	                            required: true
+	                        }
+	                    },
+	        
+	        
+	        
+	        
+	        
+	        
+	        
+	        
 	                    {
-	                        if (newValue)
-	                        {
-	                            console.log(newValue);
-	                            var _arrNames = newValue.replace(/\s+/g, " ").split(' ');
-	                            if (_arrNames.length == 2)
-	                            {
-	                                vm.regdata.FirstName = _arrNames[0];
-	                                vm.regdata.LastName = _arrNames[1];
-	                            }
-	                            else
-	                            {
-	                                vm.regdata.FirstName = newValue
-	                                vm.regdata.LastName = '.';
-	                            }
+	                        key: 'CardMonth',
+	                        type: 'bs4-horizontalSelect',
+	                        templateOptions: {
+	                            label: 'End date month',
+	                            labelProp: 'name',
+	                            valueProp: 'value',
+	                            options: vm._months,
+	                            required: true
+	                        }
+	                    },
+	        
+	        */
+
+	        {
+	            key: 'CVV',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'password',
+	                label: 'Verification Code',
+	                placeholder: 'Enter verification code',
+	                required: true,
+	                minlength: 3,
+	                maxlength: 4,
+	                disabled: true
+	            }
+	        }, {
+	            key: 'CompanyName',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Company Name',
+	                placeholder: 'Enter Company name',
+	                //                        minlength: 5,
+	                maxlength: 40
+
+	            }
+	        }, {
+	            key: 'Name',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Name',
+	                placeholder: 'Enter Name (exactly as it appears on card)',
+	                maxlength: 30,
+	                required: true
+	            },
+
+	            watcher: {
+	                listener: function listener(field, newValue, oldValue, scope, stopWatching) {
+	                    if (newValue) {
+	                        console.log(newValue);
+	                        var _arrNames = newValue.replace(/\s+/g, " ").split(' ');
+	                        if (_arrNames.length == 2) {
+	                            vm.regdata.FirstName = _arrNames[0];
+	                            vm.regdata.LastName = _arrNames[1];
+	                        } else {
+	                            vm.regdata.FirstName = newValue;
+	                            vm.regdata.LastName = '.';
 	                        }
 	                    }
 	                }
-
-
-
-	            },
-
-
-	/*
-
-	            {
-	                key: 'FirstName',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'First Name',
-	                    placeholder: 'Enter First Name',
-	                    maxlength: 25,
-	                    required: true
-	                }
-	            },
-
-	            {
-	                key: 'LastName',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Last Name',
-	                    placeholder: 'Enter Last Name',
-	                    maxlength: 25,
-	                    required: true
-	                }
-	            },
-
-	*/
-
-
-	            {
-	                key: 'Address',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Address',
-	                    placeholder: 'Enter Address',
-	//                    minlength: 5,
-	                    maxlength: 40,
-	                    required: true
-	                }
-	            },
-
-
-
-	            {
-	                key: 'City',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'City',
-	                    placeholder: 'Enter City',
-	                    required: true,
-	//                    minlength: 5,
-	                    maxlength: 40,
-
-	                }
-	            },
-
-
-
-	            {
-	                key: 'State',
-	                type: "bs4-horizontalInput",
-	                templateOptions:
-	                    {
-	                        type: 'text',
-	                        label: 'State/Province/Region',
-	                        placeholder: 'Enter State/Province/Region',
-	                        minlength: 2,
-	                        maxlength: 25,
-	                        required: true
-	                    }
-	            },
-
-
-	            {
-	                key: 'Zip',
-	                type: "bs4-horizontalInput",
-	                templateOptions: {
-	                    type: 'text',
-	                    label: 'Zip',
-	                    placeholder: 'Enter Zip',
-	                    minlength: 5,
-	                    maxlength: 12,
-	                    required: true
-	                }
-	            },
-
-	            {
-	                key: 'Country',
-	                type: 'bs4-horizontalSelect',
-	                templateOptions: {
-	                    label: 'Country',
-	                    labelProp: 'name',
-	                    valueProp: 'name',
-	                    options: [{ name: 'United States' }, { name: 'Canada' }, { name: 'United Kingdom' }],//vm.countries,
-	                    required: true
-
-	                },
-	                controller: ['$scope', function ($scope) {
-	                    vm.initform().then(
-	                            function (data) {
-	                                console.log('data>>', data);
-	                                $scope.options.templateOptions.options = _.map(data._countries, function (item) { return { name: item }; });
-	                                vm.regdata.FirstName = data._edFirstName;
-	                                vm.regdata.LastName = data._edLastName;
-
-	                                vm.regdata.Address = data._edAddress;
-	                                vm.regdata.City = data._edCity;
-	                                vm.regdata.Zip = data._edZip;
-	                                vm.regdata.State = data._edState;
-	                                vm.regdata.CompanyName = data._edCompanyName;
-
-	//                                var _stmp = $sessionStorage['_subscriptiondata'];
-	//                                if (_stmp != null) vm.regdata = _stmp;
-
-	//                                $scope.$apply();
-	                            });
-	                }]
-
 	            }
 
+	        },
 
+	        /*
+	        
+	                    {
+	                        key: 'FirstName',
+	                        type: "bs4-horizontalInput",
+	                        templateOptions: {
+	                            type: 'text',
+	                            label: 'First Name',
+	                            placeholder: 'Enter First Name',
+	                            maxlength: 25,
+	                            required: true
+	                        }
+	                    },
+	        
+	                    {
+	                        key: 'LastName',
+	                        type: "bs4-horizontalInput",
+	                        templateOptions: {
+	                            type: 'text',
+	                            label: 'Last Name',
+	                            placeholder: 'Enter Last Name',
+	                            maxlength: 25,
+	                            required: true
+	                        }
+	                    },
+	        
+	        */
 
-	             ];
+	        {
+	            key: 'Address',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Address',
+	                placeholder: 'Enter Address',
+	                //                    minlength: 5,
+	                maxlength: 40,
+	                required: true
+	            }
+	        }, {
+	            key: 'City',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'City',
+	                placeholder: 'Enter City',
+	                required: true,
+	                //                    minlength: 5,
+	                maxlength: 40
 
+	            }
+	        }, {
+	            key: 'State',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'State/Province/Region',
+	                placeholder: 'Enter State/Province/Region',
+	                minlength: 2,
+	                maxlength: 25,
+	                required: true
+	            }
+	        }, {
+	            key: 'Zip',
+	            type: "bs4-horizontalInput",
+	            templateOptions: {
+	                type: 'text',
+	                label: 'Zip',
+	                placeholder: 'Enter Zip',
+	                minlength: 5,
+	                maxlength: 12,
+	                required: true
+	            }
+	        }, {
+	            key: 'Country',
+	            type: 'bs4-horizontalSelect',
+	            templateOptions: {
+	                label: 'Country',
+	                labelProp: 'name',
+	                valueProp: 'name',
+	                options: [{ name: 'United States' }, { name: 'Canada' }, { name: 'United Kingdom' }], //vm.countries,
+	                required: true
 
+	            },
+	            controller: ['$scope', function ($scope) {
+	                vm.initform().then(function (data) {
+	                    console.log('data>>', data);
+	                    $scope.options.templateOptions.options = _.map(data._countries, function (item) {
+	                        return { name: item };
+	                    });
+	                    vm.regdata.FirstName = data._edFirstName;
+	                    vm.regdata.LastName = data._edLastName;
 
+	                    vm.regdata.Address = data._edAddress;
+	                    vm.regdata.City = data._edCity;
+	                    vm.regdata.Zip = data._edZip;
+	                    vm.regdata.State = data._edState;
+	                    vm.regdata.CompanyName = data._edCompanyName;
 
+	                    //                                var _stmp = $sessionStorage['_subscriptiondata'];
+	                    //                                if (_stmp != null) vm.regdata = _stmp;
+
+	                    //                                $scope.$apply();
+	                });
+	            }]
+
+	        }];
 
 	        function InitForm() {
 	            var deferrer = $q.defer();
@@ -59126,37 +56317,19 @@ webpackJsonp([0],[
 	                data: {}
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error
-	            (
-	            function (data, status, headers, config)
-	            { deferrer.reject("Error !!!"); }
-	            );
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 
 	            return deferrer.promise;
-
-
 	        }
-
-
-
 	    }
 	    CreateSubscriptionController.$inject = ["$scope", "$state", "$http", "$q", "$timeout", "_", "$sessionStorage", "toaster", "FFD_CONST", "LoginService", "createDialog"];
 
-
-
 	    return CreateSubscriptionController;
-
-
-
-	}
-
-
+	};
 
 /***/ },
 /* 258 */
@@ -59182,34 +56355,27 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function CreatePaypalSubscriptionController($scope, $state, $http, $q, _,
-	        $sessionStorage, toaster, FFD_CONST, LoginService, createDialog /* , SubscrService*/)
-	    {
+	    function CreatePaypalSubscriptionController($scope, $state, $http, $q, _, $sessionStorage, toaster, FFD_CONST, LoginService, createDialog /* , SubscrService*/) {
 
 	        var vm = this;
 	        vm.confirm = false;
 	        vm.initform = InitForm;
 	        vm.confirm = false;
 
-
-	        vm.initform().then(
-	        function (data)
-	        {
-	            if (data.result == "SKIP")
-	            {
+	        vm.initform().then(function (data) {
+	            if (data.result == "SKIP") {
 	                var _msg = data.message || "You already have active subscription !";
-	                toaster.pop(
-	                    {
-	                        type: 'info',
-	                        body: _msg,
-	                        timeout: 0,
-	                        onHideCallback: function () { $state.go('search'); }
-	                    });
+	                toaster.pop({
+	                    type: 'info',
+	                    body: _msg,
+	                    timeout: 0,
+	                    onHideCallback: function onHideCallback() {
+	                        $state.go('search');
+	                    }
+	                });
 
 	                return;
 	            }
@@ -59217,79 +56383,53 @@ webpackJsonp([0],[
 	            vm.ledEndDate = data._ledEndDate;
 	            vm.ledFee = data._ledFee;
 	            vm.paypalUrl = data.paypalUrl;
-	        }
-	        );
+	        });
 
-	//        vm.activate_dialog = SubscrService.ShowFaq;
-
-	        
-	        vm.activate_dialog = function ()
-	        {
-	            createDialog
-	                (
-	                    {
-	                        id: 'SpecialOffer',
-	                        css: { top: '5vh', margin: '0 auto' },
-	                        template: __webpack_require__(258),
-	                        footerTemplate: __webpack_require__(259),
-	                        backdrop: true,
-	                        success:
-	                            {
-	                                label: 'Close',
-	                                fn: function () { }
-	                            }
-	                    }
-	                );
-	        }
-	        
+	        //        vm.activate_dialog = SubscrService.ShowFaq;
 
 
+	        vm.activate_dialog = function () {
+	            createDialog({
+	                id: 'SpecialOffer',
+	                css: { top: '5vh', margin: '0 auto' },
+	                template: __webpack_require__(258),
+	                footerTemplate: __webpack_require__(259),
+	                backdrop: true,
+	                success: {
+	                    label: 'Close',
+	                    fn: function fn() {}
+	                }
+	            });
+	        };
 
-
-
-	        vm.createsubscr = function ($event) { }
+	        vm.createsubscr = function ($event) {};
 
 	        activate();
 
-	        function activate() { }
+	        function activate() {}
 
-
-
-	        function InitForm()
-	        {
+	        function InitForm() {
 	            var deferrer = $q.defer();
 	            var self = this;
 
 	            var request = $http({
 	                method: "post",
-	                url: FFD_CONST.API_BASE_URL+"getStartInfoForPaypalSubscription",
+	                url: FFD_CONST.API_BASE_URL + "getStartInfoForPaypalSubscription",
 	                data: {}
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
-
 	        }
-
-
 	    }
 	    CreatePaypalSubscriptionController.$inject = ["$scope", "$state", "$http", "$q", "_", "$sessionStorage", "toaster", "FFD_CONST", "LoginService", "createDialog"];
 
 	    return CreatePaypalSubscriptionController;
-
-
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 262 */
@@ -59303,18 +56443,15 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
-	    function SuccessCreatePaypalSubscriptionController($scope, $state, $stateParams,$localStorage ,  toaster, LoginService)     
-	        {
+	    function SuccessCreatePaypalSubscriptionController($scope, $state, $stateParams, $localStorage, toaster, LoginService) {
 
 	        var vm = this;
 
-	        vm.createsubscr = function ()
-	        {
+	        vm.createsubscr = function () {
 	            /*
 	            var _params = $stateParams;
 	            if ($localStorage['successcreatepaypalsubscription'])
@@ -59324,73 +56461,53 @@ webpackJsonp([0],[
 	            }
 	            */
 
-	            LoginService.createpaypalsubscription($stateParams)
-	             .then(function (data) {
+	            LoginService.createpaypalsubscription($stateParams).then(function (data) {
 
-	                 if (data.result == 'ERROR')
-	                 {
-	                     vm.result = data.result;
-	                     vm.message = data.message;
-	                 }
+	                if (data.result == 'ERROR') {
+	                    vm.result = data.result;
+	                    vm.message = data.message;
+	                }
 
+	                if (data.result == 'OK') {
 
-	                 if (data.result == 'OK')
-	                 {
+	                    window.dataLayer = window.dataLayer || [];
+	                    window.dataLayer.push({
+	                        'event': 'SuccessSubscriptionEvent',
+	                        'eventCategory': 'Subscriptions',
+	                        'eventAction': 'Success Credit Card Subscription',
+	                        'eventLabel': location.pathname
+	                    });
 
-	                     window.dataLayer = window.dataLayer || [];
-	                     window.dataLayer.push({
-	                         'event': 'SuccessSubscriptionEvent',
-	                         'eventCategory': 'Subscriptions',
-	                         'eventAction': 'Success Credit Card Subscription',
-	                         'eventLabel': location.pathname
-	                     });
+	                    vm.result = data.result;
+	                    vm.message = data.message;
+	                    toaster.pop({ type: 'success', body: 'Your transaction was successful', timeout: 0 });
+	                }
 
+	                if (data.result == 'SKIP') {
 
+	                    var _msg = data.message || "You already have active subscription !";
+	                    toaster.pop({
+	                        type: 'info',
+	                        body: _msg,
+	                        timeout: 0,
+	                        onHideCallback: function onHideCallback() {
+	                            $state.go('search');
+	                        }
+	                    });
 
-	                     vm.result = data.result;
-	                     vm.message = data.message;
-	                     toaster.pop({ type : 'success', body : 'Your transaction was successful', timeout : 0 });
-	                 }
+	                    return;
 
-	                 if (data.result == 'SKIP')
-	                 {
-
-	                     var _msg = data.message || "You already have active subscription !";
-	                     toaster.pop(
-	                         {
-	                             type: 'info',
-	                             body: _msg,
-	                             timeout: 0,
-	                             onHideCallback: function () { $state.go('search'); }
-	                         });
-
-	                     return;
-
-
-
-
-	//                     $state.go(data.return_url);
-	                 }
-
-
-	             });
+	                    //                     $state.go(data.return_url);
+	                }
+	            });
 	        };
 
-
 	        vm.createsubscr();
-
 	    }
 	    SuccessCreatePaypalSubscriptionController.$inject = ["$scope", "$state", "$stateParams", "$localStorage", "toaster", "LoginService"];
 
-
-
 	    return SuccessCreatePaypalSubscriptionController;
-
-
-	}
-
-
-
+	};
 
 /***/ },
 /* 264 */
@@ -59410,14 +56527,10 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function _CreateBitPaySubscriptionController($scope, $sce, $state, $http, $q, _,
-	        $sessionStorage, toaster, FFD_CONST, LoginService, createDialog /*, SubscrService*/)
-	    {
+	    function _CreateBitPaySubscriptionController($scope, $sce, $state, $http, $q, _, $sessionStorage, toaster, FFD_CONST, LoginService, createDialog /*, SubscrService*/) {
 
 	        var vm = this;
 	        vm.loadedData = false;
@@ -59425,21 +56538,18 @@ webpackJsonp([0],[
 	        vm.initform = InitForm;
 	        vm.bitpayurl = "";
 
-
-	        vm.initform().then(
-	        function (data)
-	        {
+	        vm.initform().then(function (data) {
 	            vm.loadedData = true;
-	            if (data.result == "SKIP")
-	            {
+	            if (data.result == "SKIP") {
 	                var _msg = data.message || "You already have active subscription !";
-	                toaster.pop(
-	                    {
-	                        type: 'info',
-	                        body: _msg,
-	                        timeout: 0,
-	                        onHideCallback: function () { $state.go('search'); }
-	                    });
+	                toaster.pop({
+	                    type: 'info',
+	                    body: _msg,
+	                    timeout: 0,
+	                    onHideCallback: function onHideCallback() {
+	                        $state.go('search');
+	                    }
+	                });
 
 	                return;
 
@@ -59447,61 +56557,46 @@ webpackJsonp([0],[
 	                $state.go("search");
 	            }
 
-
-
-	            if (data.result == "ERROR")
-	            {
+	            if (data.result == "ERROR") {
 	                toaster.pop("error", data.message);
 	            }
 
-	            if (data.result == "OK")
-	            {
+	            if (data.result == "OK") {
 
 	                var _data = data.data;
 
-	                vm.result          = _data.result;
-	                vm.Amount          = _data.Amount;
-	                vm.StartDate       = _data.StartDate;
-	                vm.EndDate         = _data.EndDate;
-	                vm.TotalPayments   = _data.TotalPayments;
+	                vm.result = _data.result;
+	                vm.Amount = _data.Amount;
+	                vm.StartDate = _data.StartDate;
+	                vm.EndDate = _data.EndDate;
+	                vm.TotalPayments = _data.TotalPayments;
 	                vm.StartSubscrDate = _data.StartSubscrDate;
-	                vm.EndSubscrDate   = _data.EndSubscrDate;
+	                vm.EndSubscrDate = _data.EndSubscrDate;
 	                vm.PostBackUrl = _data.PostBackUrl;
 	                vm.bitpayurl = $sce.trustAsResourceUrl(vm.PostBackUrl + "&view=iframe");
 	            }
+	        });
 
-	        }
-	        );
-
-	//        vm.activate_dialog = SubscrService.ShowFaq;
+	        //        vm.activate_dialog = SubscrService.ShowFaq;
 
 
 	        vm.activate_dialog = function () {
-	            createDialog
-	                (
-	                    {
-	                        id: 'SpecialOffer',
-	                        css: { top: '5vh', margin: '0 auto' },
-	                        template: __webpack_require__(258),
-	                        footerTemplate: __webpack_require__(259),
-	                        backdrop: true,
-	                        success:
-	                            {
-	                                label: 'Close',
-	                                fn: function () { }
-	                            }
-	                    }
-	                );
-	        }
-	 
+	            createDialog({
+	                id: 'SpecialOffer',
+	                css: { top: '5vh', margin: '0 auto' },
+	                template: __webpack_require__(258),
+	                footerTemplate: __webpack_require__(259),
+	                backdrop: true,
+	                success: {
+	                    label: 'Close',
+	                    fn: function fn() {}
+	                }
+	            });
+	        };
 
-	 
+	        vm.createsubscr = function ($event) {};
 
-	        vm.createsubscr = function ($event) { }
-
-
-	        function InitForm()
-	        {
+	        function InitForm() {
 	            var deferrer = $q.defer();
 	            var self = this;
 
@@ -59511,30 +56606,18 @@ webpackJsonp([0],[
 	                data: {}
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
-
 	        }
-
-
 	    }
 	    _CreateBitPaySubscriptionController.$inject = ["$scope", "$sce", "$state", "$http", "$q", "_", "$sessionStorage", "toaster", "FFD_CONST", "LoginService", "createDialog"];
 
 	    return _CreateBitPaySubscriptionController;
-
-
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 267 */
@@ -59548,13 +56631,10 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function _CreateBitcoinMonthlyFeeController($scope, $sce ,$state, $http, $q, _, $sessionStorage, toaster, FFD_CONST, LoginService)
-	    {
+	    function _CreateBitcoinMonthlyFeeController($scope, $sce, $state, $http, $q, _, $sessionStorage, toaster, FFD_CONST, LoginService) {
 
 	        var vm = this;
 	        vm.loadedData = false;
@@ -59563,23 +56643,19 @@ webpackJsonp([0],[
 	        vm.confirm = false;
 	        vm.bitpayurl = "";
 	        vm.initform = InitForm;
-	        vm.reger_data = function ()
-	        {
+	        vm.reger_data = function () {
 	            vm.loadedData = false;
-	            vm.initform().then(
-	            function (data) {
+	            vm.initform().then(function (data) {
 	                vm.loadedData = true;
 
 	                vm.result = data.result;
-
 
 	                if (data.result == "ERROR") {
 	                    vm.message = data.message;
 	                    toaster.pop("error", data.message);
 	                }
 
-	                if (data.result == "OK")
-	                {
+	                if (data.result == "OK") {
 	                    var _data = data.data;
 
 	                    vm.result = _data.result;
@@ -59589,29 +56665,18 @@ webpackJsonp([0],[
 	                    vm.PaymentNum = _data.PaymentNum;
 	                    vm.PostBackUrl = _data.PostBackUrl;
 	                    vm.bitpayurl = $sce.trustAsResourceUrl(vm.PostBackUrl + "&view=iframe");
-
-
 	                }
-
-	            }
-	            );
-
-	        }
-
+	            });
+	        };
 
 	        vm.reger_data();
 
-
-	        vm.refresh_data = function ($event)
-	        {
+	        vm.refresh_data = function ($event) {
 	            $event.preventDefault();
 	            vm.reger_data();
-	        }
+	        };
 
-
-
-	        function InitForm()
-	        {
+	        function InitForm() {
 	            var deferrer = $q.defer();
 	            var self = this;
 
@@ -59621,30 +56686,18 @@ webpackJsonp([0],[
 	                data: {}
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
-
 	        }
-
-
 	    }
 	    _CreateBitcoinMonthlyFeeController.$inject = ["$scope", "$sce", "$state", "$http", "$q", "_", "$sessionStorage", "toaster", "FFD_CONST", "LoginService"];
 
 	    return _CreateBitcoinMonthlyFeeController;
-
-
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 269 */
@@ -59658,13 +56711,10 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
-	    function _CommitBitcoinUserPaymentController($scope, $state, $http, $q, _, $sessionStorage, toaster, FFD_CONST, LoginService)
-	    {
+	    function _CommitBitcoinUserPaymentController($scope, $state, $http, $q, _, $sessionStorage, toaster, FFD_CONST, LoginService) {
 
 	        var vm = this;
 	        vm.loadedData = false;
@@ -59672,30 +56722,24 @@ webpackJsonp([0],[
 	        vm.message = "";
 	        vm.confirm = false;
 	        vm.initform = InitForm;
-	        vm.reger_data = function ()
-	        {
+	        vm.reger_data = function () {
 	            vm.loadedData = false;
-	            vm.initform().then(
-	            function (data) {
+	            vm.initform().then(function (data) {
 	                vm.loadedData = true;
 
 	                vm.result = data.result;
 
-	                if (data.result == "NEED_MORE")
-	                {
+	                if (data.result == "NEED_MORE") {
 	                    toaster.pop("info", "Need more payment !");
 	                    $state.go("createbitcoinmonthlyfee");
 	                }
-
-
 
 	                if (data.result == "ERROR") {
 	                    vm.message = data.message;
 	                    //                toaster.pop("error", data.message);
 	                }
 
-	                if (data.result == "OK")
-	                {
+	                if (data.result == "OK") {
 
 	                    window.dataLayer = window.dataLayer || [];
 	                    window.dataLayer.push({
@@ -59705,38 +56749,28 @@ webpackJsonp([0],[
 	                        'eventLabel': location.pathname
 	                    });
 
-
 	                    vm.message = "Thank you! You can start working with site.";
 	                    var _data = data.data;
-	                    toaster.pop(
-	                        {
-	                            type: 'success',
-	                            body: 'Your transaction was successful',
-	                            timeout: 0,
-	                            onHideCallback: function () { $state.go('search'); }
-	                        });
-
+	                    toaster.pop({
+	                        type: 'success',
+	                        body: 'Your transaction was successful',
+	                        timeout: 0,
+	                        onHideCallback: function onHideCallback() {
+	                            $state.go('search');
+	                        }
+	                    });
 	                }
-
-	            }
-	            );
-
-	        }
-
+	            });
+	        };
 
 	        vm.reger_data();
 
-
-	        vm.refresh_data = function ($event)
-	        {
+	        vm.refresh_data = function ($event) {
 	            $event.preventDefault();
 	            vm.reger_data();
-	        }
+	        };
 
-
-
-	        function InitForm()
-	        {
+	        function InitForm() {
 	            var deferrer = $q.defer();
 	            var self = this;
 
@@ -59746,30 +56780,18 @@ webpackJsonp([0],[
 	                data: {}
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                deferrer.resolve(data.d);
-	            })
-	            .error(function (data, status, headers, config) { deferrer.reject("Error !!!"); });
+	            }).error(function (data, status, headers, config) {
+	                deferrer.reject("Error !!!");
+	            });
 	            return deferrer.promise;
-
-
 	        }
-
-
 	    }
 	    _CommitBitcoinUserPaymentController.$inject = ["$scope", "$state", "$http", "$q", "_", "$sessionStorage", "toaster", "FFD_CONST", "LoginService"];
 
 	    return _CommitBitcoinUserPaymentController;
-
-
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 271 */
@@ -59783,95 +56805,63 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
 
-
 	    /* @ngInject */
-	    function _GetSubscriptionFullInfoController($scope, $state, $http, $q, _, $sessionStorage, toaster, FFD_CONST, LoginService /*, uuid2*/)
-	    {
+	    function _GetSubscriptionFullInfoController($scope, $state, $http, $q, _, $sessionStorage, toaster, FFD_CONST, LoginService /*, uuid2*/) {
 
-	        function s4() 
-	        {
-	            return Math.floor((1 + Math.random()) * 0x10000)
-	                .toString(16)
-	                .substring(1);
+	        function s4() {
+	            return Math.floor((1 + Math.random()) * 0x10000).toString(16).substring(1);
 	        }
 
-	        function newguid() 
-	        {
-	            return s4() + s4() + '-' + s4() + '-' + s4() + '-' +
-	                s4() + '-' + s4() + s4() + s4();
+	        function newguid() {
+	            return s4() + s4() + '-' + s4() + '-' + s4() + '-' + s4() + '-' + s4() + s4() + s4();
 	        }
-
 
 	        var vm = this;
 	        vm.info = {};
 	        vm.data = {};
 	        vm.data2 = {};
 
-	        vm.getsubscrinfo=function()
-	        {
-	            LoginService.getActiveSubscriptionFullInfo()
-	              .then(function (data) {
+	        vm.getsubscrinfo = function () {
+	            LoginService.getActiveSubscriptionFullInfo().then(function (data) {
 
-	                  vm.info = data;
-	                  if (data.result != "OK") return;
-	                  vm.data =
+	                vm.info = data;
+	                if (data.result != "OK") return;
+	                vm.data = {
+	                    'event': 'transaction',
+	                    'transactionId': 'order-123',
+	                    'transactionAffiliation': 'web',
+	                    'transactionTotal': '107.98',
+	                    'transactionShipping': '2.99',
+	                    'transactionTax': '2',
+	                    'transactionCurrency': 'GBP',
+	                    'transactionProducts': [{ 'name': 'Blue_t-shirt', 'sku': '1001', 'category': 'ts', 'price': '4.99', 'quantity': '1' }, { 'name': 'Red_shoes', 'sku': '1002', 'category': 'shoes', 'price': '50.00', 'quantity': '2' }],
+	                    'transactionCity': 'London',
+	                    'transactionCountry': 'United Kingdom'
+	                };
 
-	                  {
-	                      'event': 'transaction',
-	                      'transactionId': 'order-123',
-	                      'transactionAffiliation': 'web',
-	                      'transactionTotal': '107.98',
-	                      'transactionShipping': '2.99',
-	                      'transactionTax': '2',
-	                      'transactionCurrency': 'GBP',
-	                      'transactionProducts': [
-	                            { 'name': 'Blue_t-shirt', 'sku': '1001', 'category': 'ts', 'price': '4.99', 'quantity': '1' },
-	                            { 'name': 'Red_shoes', 'sku': '1002', 'category': 'shoes', 'price': '50.00', 'quantity': '2' }
-	                      ],
-	                      'transactionCity': 'London',
-	                      'transactionCountry': 'United Kingdom'
-	                  };
+	                vm.data = {
+	                    'event': 'transaction',
+	                    'transactionId': newguid(),
+	                    'transactionAffiliation': data.info.SubscriprtionType,
+	                    'transactionTotal': '29.00',
+	                    //                          'transactionShipping': '2.99',
+	                    //                          'transactionTax': '2',
+	                    'transactionCurrency': 'USD',
+	                    //                          'transactionCity': 'London',
+	                    'transactionCountry': 'United States'
+	                };
+	            });
+	        };
 
-
-
-
-	                  vm.data =
-
-	                  {
-	                      'event': 'transaction',
-	                      'transactionId': newguid(),
-	                      'transactionAffiliation': data.info.SubscriprtionType,
-	                      'transactionTotal': '29.00',
-	                      //                          'transactionShipping': '2.99',
-	                      //                          'transactionTax': '2',
-	                      'transactionCurrency': 'USD',
-	                      //                          'transactionCity': 'London',
-	                      'transactionCountry': 'United States'
-	                  };
-
-
-
-	              });
-	        }
-
-
-
-
-
-	        vm.put2GTM=function()
-	        {
+	        vm.put2GTM = function () {
 	            vm.data.transactionId = newguid();
 	            dataLayer.push(vm.data);
-	        }
-
+	        };
 
 	        vm.put2GTM2 = function () {
-	            vm.data2 =
-
-	            {
+	            vm.data2 = {
 	                'event': 'transaction',
 	                'transactionId': newguid(),
 	                'transactionAffiliation': 'web',
@@ -59879,27 +56869,17 @@ webpackJsonp([0],[
 	                'transactionShipping': '2.99',
 	                'transactionTax': '2',
 	                'transactionCurrency': 'USD',
-	                'transactionProducts': [
-	                      { 'name': 'Blue_t-shirt', 'sku': '1001', 'category': 'ts', 'price': '4.99', 'quantity': '1' },
-	                      { 'name': 'Red_shoes', 'sku': '1002', 'category': 'shoes', 'price': '50.00', 'quantity': '2' }
-	                ],
+	                'transactionProducts': [{ 'name': 'Blue_t-shirt', 'sku': '1001', 'category': 'ts', 'price': '4.99', 'quantity': '1' }, { 'name': 'Red_shoes', 'sku': '1002', 'category': 'shoes', 'price': '50.00', 'quantity': '2' }],
 	                'transactionCity': 'New York',
 	                'transactionCountry': 'United States'
 	            };
 	            dataLayer.push(vm.data2);
-	        }
-
-
+	        };
 	    }
 	    _GetSubscriptionFullInfoController.$inject = ["$scope", "$state", "$http", "$q", "_", "$sessionStorage", "toaster", "FFD_CONST", "LoginService"];
 
-
-
-
-
-
 	    return _GetSubscriptionFullInfoController;
-	}
+	};
 
 /***/ },
 /* 273 */
@@ -59907,30 +56887,23 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
 	module.exports = function (app) {
-
 
 	    __webpack_require__(274);
 	    __webpack_require__(276)(app);
 
 	    /* @ngInject */
 	    function _configRoutes($stateProvider) {
-	//        var _cont = require('./templates/content.tpl.html');
+	        //        var _cont = require('./templates/content.tpl.html');
 	        var _views = {};
 	        _views = { 'content@root': { template: __webpack_require__(286), controller: __webpack_require__(287)(app), controllerAs: 'vm' } };
-	//        _views = { 'content@root': { template: "sssssss" } };
+	        //        _views = { 'content@root': { template: "sssssss" } };
 	        $stateProvider.state('newsletter', { parent: 'root', url: 'newsletter', views: _views });
-
 	    }
 	    _configRoutes.$inject = ["$stateProvider"];
 
 	    app.config(_configRoutes);
-	}
-
-
-
-
+	};
 
 /***/ },
 /* 274 */
@@ -59945,70 +56918,54 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 	    /* @ngInject */
-
 
 	    app.directive('newLetterPage001', _NewLetterPage001);
 	    app.directive('newLetterPage002', _NewLetterPage002);
 	    app.directive('newLetterPage003', _NewLetterPage003);
 	    app.directive('newLetterPage004', _NewLetterPage004);
 
-
 	    function _NewLetterPage001() {
-	        var _res =
-	         {
-	             restrict: 'E',
-	             replace: true,
-	//             scope: {},
-	             template: __webpack_require__(277)
-	         };
+	        var _res = {
+	            restrict: 'E',
+	            replace: true,
+	            //             scope: {},
+	            template: __webpack_require__(277)
+	        };
 	        return _res;
 	    }
 
-	    function _NewLetterPage002()
-	    {
-	        var _res =
-	         {
-	             restrict: 'E',
-	             replace: true,
-	//             scope: {},
-	             template:  __webpack_require__(279)
-	         };
+	    function _NewLetterPage002() {
+	        var _res = {
+	            restrict: 'E',
+	            replace: true,
+	            //             scope: {},
+	            template: __webpack_require__(279)
+	        };
 	        return _res;
 	    }
 
-	    function _NewLetterPage003()
-	    {
-	        var _res =
-	         {
-	             restrict: 'E',
-	             replace: true,
-	//             scope: {},
-	             template:  __webpack_require__(281)
-	         };
+	    function _NewLetterPage003() {
+	        var _res = {
+	            restrict: 'E',
+	            replace: true,
+	            //             scope: {},
+	            template: __webpack_require__(281)
+	        };
 	        return _res;
 	    }
 
 	    function _NewLetterPage004() {
-	        var _res =
-	         {
-	             restrict: 'E',
-	             replace: true,
-	//             scope: {},
-	             template:  __webpack_require__(284)
-	         };
+	        var _res = {
+	            restrict: 'E',
+	            replace: true,
+	            //             scope: {},
+	            template: __webpack_require__(284)
+	        };
 	        return _res;
 	    }
-
-
-
-
-
-
-	}
+	};
 
 /***/ },
 /* 277 */
@@ -60076,54 +57033,41 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 	    /* @ngInject */
-	    function _NewsLetterController($scope, toaster)
-	    {
+	    function _NewsLetterController($scope, toaster) {
 	        var vm = this;
 	        vm.page = 1;
 
-
-	        vm.gotopage=function(_page)
-	        {
+	        vm.gotopage = function (_page) {
 	            vm.page = _page;
 	            if (vm.page < 1) vm.page = 4;
 	            if (vm.page > 4) vm.page = 1;
-	        }
-
+	        };
 
 	        vm.next = function () {
 	            vm.gotopage(vm.page + 1);
-	        }
+	        };
 
 	        vm.prev = function () {
 	            vm.gotopage(vm.page - 1);
-	        }
+	        };
 
-
-
-	/*
-	        vm.cal_expert = function () {
-	            if (!window.Tawk_API) {
-	                toaster.pop('info', 'Tawk API not loade!');
-	                return false;
-	            }
-	            Tawk_API.toggle();
-	            return false;
-	        }
-	 */
-
-
+	        /*
+	                vm.cal_expert = function () {
+	                    if (!window.Tawk_API) {
+	                        toaster.pop('info', 'Tawk API not loade!');
+	                        return false;
+	                    }
+	                    Tawk_API.toggle();
+	                    return false;
+	                }
+	         */
 	    }
 	    _NewsLetterController.$inject = ["$scope", "toaster"];
 
-
-
 	    return _NewsLetterController;
-
-	}
+	};
 
 /***/ },
 /* 288 */
@@ -60131,15 +57075,14 @@ webpackJsonp([0],[
 
 	'use strict';
 
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 	    __webpack_require__(289)(app);
 	    __webpack_require__(290)(app);
 
-	//    require('./formly/formly2.js')(app);
+	    //    require('./formly/formly2.js')(app);
 	    //    require('./ngmeta/')(app);
 	    //    require('./ui-grid/ui-grid.js')(app);
-	}
+	};
 
 /***/ },
 /* 289 */
@@ -60147,24 +57090,18 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-	module.exports=function(app)
-	{
+	module.exports = function (app) {
 
 	    /* @ngInject */
 
-
 	    app.config(["toasterConfig", function (toasterConfig) {
-	        angular.extend(toasterConfig,
-	            {
-	                'close-button': true,
-	                'position-class': 'toast-top-center',
-	                'prevent-duplicates': true
-	            });
+	        angular.extend(toasterConfig, {
+	            'close-button': true,
+	            'position-class': 'toast-top-center',
+	            'prevent-duplicates': true
+	        });
 	    }]);
-
-
-	}
+	};
 
 /***/ },
 /* 290 */
@@ -60172,136 +57109,110 @@ webpackJsonp([0],[
 
 	'use strict';
 
-
-
-
-
-	module.exports = function (app)
-	{
+	module.exports = function (app) {
 
 	    app.constant('formlyExampleApiCheck', apiCheck());
 	    app.config(configformly);
 	    app.run(runformly);
 
+	    function runformly(formlyValidationMessages) {
 
-	    function runformly( formlyValidationMessages)
-	    {
-	        
 	        formlyValidationMessages.addTemplateOptionValueMessage('maxlength', 'maxlength', '', 'is the maximum length', 'Too long');
 	        formlyValidationMessages.addTemplateOptionValueMessage('minlength', 'minlength', '', 'is the minimum length', 'Too short');
 	        formlyValidationMessages.messages.required = 'to.label + " is required"';
 	        formlyValidationMessages.messages.email = '$viewValue + " is not a valid email address"';
-
 	    }
 	    runformly.$inject = ["formlyValidationMessages"];
 
 	    /* @ngInject */
-	    function configformly(formlyConfigProvider,  formlyExampleApiCheck)
-	    {
+	    function configformly(formlyConfigProvider, formlyExampleApiCheck) {
 
-	//???        formlyConfig.extras.removeChromeAutoComplete === true
+	        //???        formlyConfig.extras.removeChromeAutoComplete === true
 
 	        formlyConfigProvider.setWrapper({
 	            name: 'horizontalBootstrapLabel',
 	            template: __webpack_require__(291)
 	        });
 
-
-
 	        formlyConfigProvider.setWrapper({
 	            name: 'horizontalBs4Label',
 	            template: __webpack_require__(292)
 	        });
-
 
 	        formlyConfigProvider.setWrapper({
 	            name: 'horizontalBs4CheckBox',
 	            template: __webpack_require__(293)
 	        });
 
-
 	        formlyConfigProvider.setWrapper({
 	            name: 'ngMessages',
 	            template: __webpack_require__(294)
 	        });
-
 
 	        formlyConfigProvider.setWrapper({
 	            name: 'horizontalBootstrapCaptcha',
 	            template: __webpack_require__(295)
 	        });
 
-
 	        formlyConfigProvider.setType({
 	            name: 'horizontalInput',
-	            extends: 'input'
-	            , wrapper: ['horizontalBootstrapLabel', 'bootstrapHasError']
+	            extends: 'input',
+	            wrapper: ['horizontalBootstrapLabel', 'bootstrapHasError']
 	        });
-
-	        
 
 	        formlyConfigProvider.setWrapper({
 	            name: 'bs4hasError',
 	            template: __webpack_require__(296)
 	        });
 
-
 	        formlyConfigProvider.setType({
 	            name: 'bs4Input',
 	            extends: 'input'
-	//            , wrapper: ['bs4hasError', 'ngMessages']
+	            //            , wrapper: ['bs4hasError', 'ngMessages']
 	            , wrapper: ['ngMessages', 'bs4hasError']
 	            //            , wrapper: ['bs4hasError']
 	        });
-	        
-
 
 	        formlyConfigProvider.setType({
 	            name: 'bs4TextArea',
-	            extends: 'textarea'
-	            , wrapper: ['ngMessages', 'bs4hasError']
+	            extends: 'textarea',
+	            wrapper: ['ngMessages', 'bs4hasError']
 	        });
 
 	        formlyConfigProvider.setType({
 	            name: 'bs4Select',
-	            extends: 'select'
-	            , wrapper: ['ngMessages', 'bs4hasError']
+	            extends: 'select',
+	            wrapper: ['ngMessages', 'bs4hasError']
 	        });
-
-
 
 	        formlyConfigProvider.setType({
 	            name: 'horizontalSelect',
-	            extends: 'select'
-	            , wrapper: ['horizontalBootstrapLabel', 'bootstrapHasError']
+	            extends: 'select',
+	            wrapper: ['horizontalBootstrapLabel', 'bootstrapHasError']
 	        });
 
 	        formlyConfigProvider.setType({
 	            name: 'horizontalTextArea',
-	            extends: 'textarea'
-	            , wrapper: ['horizontalBootstrapLabel', 'bootstrapHasError']
+	            extends: 'textarea',
+	            wrapper: ['horizontalBootstrapLabel', 'bootstrapHasError']
 	        });
-
 
 	        formlyConfigProvider.setType({
 	            name: 'horizontalCaptcha',
-	            extends: 'input'
-	            , wrapper: ['horizontalBootstrapCaptcha', 'bootstrapHasError']
-	            , controller: __webpack_require__(297)(app)
-
+	            extends: 'input',
+	            wrapper: ['horizontalBootstrapCaptcha', 'bootstrapHasError'],
+	            controller: __webpack_require__(297)(app)
 
 	        });
 
-
-
 	        formlyConfigProvider.setType({
 	            name: 'matchField',
-	            apiCheck: function () {
+	            apiCheck: function apiCheck() {
 	                return {
 	                    data: {
 	                        fieldToMatch: formlyExampleApiCheck.string
 	                    }
-	                }
+	                };
 	            },
 	            apiCheckOptions: {
 	                prefix: 'matchField type'
@@ -60312,7 +57223,7 @@ webpackJsonp([0],[
 	                        validateOnModelChange: true
 	                    },
 	                    expressionProperties: {
-	                        'templateOptions.disabled': function (viewValue, modelValue, scope) {
+	                        'templateOptions.disabled': function templateOptionsDisabled(viewValue, modelValue, scope) {
 	                            var matchField = find(scope.fields, 'key', options.data.fieldToMatch);
 	                            if (!matchField) {
 	                                throw new Error('Could not find a field for the key ' + options.data.fieldToMatch);
@@ -60325,7 +57236,7 @@ webpackJsonp([0],[
 	                    },
 	                    validators: {
 	                        fieldMatch: {
-	                            expression: function (viewValue, modelValue, fieldScope) {
+	                            expression: function expression(viewValue, modelValue, fieldScope) {
 	                                var value = modelValue || viewValue;
 	                                var model = options.data.modelToMatch || fieldScope.model;
 	                                return value === model[options.data.fieldToMatch];
@@ -60348,38 +57259,23 @@ webpackJsonp([0],[
 	            }
 	        });
 
-
-
-
-
-
-
-
 	        formlyConfigProvider.setType({
 	            name: 'bs4-horizontalCheckBox',
-	            extends: 'input'
-	            , wrapper: ['horizontalBs4CheckBox']
+	            extends: 'input',
+	            wrapper: ['horizontalBs4CheckBox']
 	        });
-
-
-
 
 	        formlyConfigProvider.setType({
-	            name: 'bs4-horizontalInput'
-	           , extends: 'input'
-	            , wrapper: [ 'ngMessages' ,'horizontalBs4Label', 'bs4hasError']
+	            name: 'bs4-horizontalInput',
+	            extends: 'input',
+	            wrapper: ['ngMessages', 'horizontalBs4Label', 'bs4hasError']
 	        });
-
 
 	        formlyConfigProvider.setType({
 	            name: 'bs4-horizontalSelect',
-	            extends: 'select'
-	            , wrapper: ['ngMessages', 'horizontalBs4Label', 'bs4hasError']
+	            extends: 'select',
+	            wrapper: ['ngMessages', 'horizontalBs4Label', 'bs4hasError']
 	        });
-
-
-	 
-
 
 	        formlyConfigProvider.setType({
 	            name: 'MonthPicker'
@@ -60388,68 +57284,43 @@ webpackJsonp([0],[
 	            //            , template: require('./dtp.tpl.html')
 	            //            , template: '<datetimepicker data-datetimepicker-config="_opts" data-ng-model="model[options.key]"  class="form-control"> </datetimepicker>'
 	            //            , template: '<input ui-date="_opts" ng-model="model[options.key]"  class="form-control" />'
-	            , controller: function ($scope)
-	            {
-	                $scope.changeDate = function ()
-	                {
-	//                    alert('ss');
+	            , controller: function controller($scope) {
+	                $scope.changeDate = function () {
+	                    //                    alert('ss');
 
 
 	                };
+	            },
+	            link: function link(scope, el, attrs) {
 
-
+	                //         $(el).change(function () { console.log('>>> ** ', $(this).val());   });
+	                //         $(el).datepicker(_opts);
 	            }
-	     , link: function (scope, el, attrs) {
-
-	//         $(el).change(function () { console.log('>>> ** ', $(this).val());   });
-	//         $(el).datepicker(_opts);
-	     }
 	        });
-
-
-
-
-
-
 
 	        formlyConfigProvider.setType({
-	            name: 'bs4-horizontalMonthPicker'
-	             , extends: 'MonthPicker'
-	     , wrapper: ['ngMessages', 'horizontalBs4Label', 'bs4hasError']
+	            name: 'bs4-horizontalMonthPicker',
+	            extends: 'MonthPicker',
+	            wrapper: ['ngMessages', 'horizontalBs4Label', 'bs4hasError']
 
 	        });
-
-
-
-
-
-
-
 
 	        formlyConfigProvider.setType({
 	            name: 'bs4-horizontalTextArea',
-	            extends: 'textarea'
-	            , wrapper: ['ngMessages', 'horizontalBs4Label', 'bs4hasError']
+	            extends: 'textarea',
+	            wrapper: ['ngMessages', 'horizontalBs4Label', 'bs4hasError']
 	        });
-
 
 	        formlyConfigProvider.setType({
 	            name: 'bs4-horizontalCaptcha',
-	            extends: 'input'
-	            , wrapper: ['horizontalBootstrapCaptcha', 'bs4hasError']
-	            , controller: __webpack_require__(297)(app)
-
+	            extends: 'input',
+	            wrapper: ['horizontalBootstrapCaptcha', 'bs4hasError'],
+	            controller: __webpack_require__(297)(app)
 
 	        });
-
-
-
-
-
-
 	    }
 	    configformly.$inject = ["formlyConfigProvider", "formlyExampleApiCheck"];
-	}
+	};
 
 /***/ },
 /* 291 */
@@ -60492,47 +57363,36 @@ webpackJsonp([0],[
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
-	module.exports=function(app)
-	{
+
+	module.exports = function (app) {
 	    __webpack_require__(298);
 
-	//    app.controller('CaptchaController', CaptchaController);
+	    //    app.controller('CaptchaController', CaptchaController);
 
 	    /* @ngInject */
 
-	    function CaptchaController($scope, $http, $q ) {
+	    function CaptchaController($scope, $http, $q) {
 	        /* jshint validthis:true */
 	        var vm = this;
 	        $scope.capa = 'http://lorempixel.com/240/80/';
 	        $scope.guid = '';
 	        $scope.inp_value;
 
-
-	        $scope.refr = Refresh;  //function () { $scope.capa += '7'; };
+	        $scope.refr = Refresh; //function () { $scope.capa += '7'; };
 	        $scope.check = checkInput;
 	        //        $scope.check = debounce($scope.check_, 5000, false).then(function () { return $q.when(); });     //_.debounce(function (val) { var _ret = checkInput(val); $scope.$apply(); return _ret; }, 5000, {'leading':false, 'trailing': true });
-
-
-
 
 
 	        $scope.refr();
 
 	        function Refresh() {
-	            $http.post("/SPA/RemoteMethods.aspx/getCaptcha", {})
-	            .success(
-	            function (data) {
+	            $http.post("/SPA/RemoteMethods.aspx/getCaptcha", {}).success(function (data) {
 	                $scope.capa = data.d.pathimage;
 	                $scope.guid = data.d.id;
 	                //                $scope.$apply();
-	                if ($scope.fc)
-	                    $scope.fc.$$parseAndValidate();
-	            }
-	            );
+	                if ($scope.fc) $scope.fc.$$parseAndValidate();
+	            });
 	        }
-
-
-
 
 	        function checkInput(val) {
 	            if (!val) return $q.reject();
@@ -60545,31 +57405,20 @@ webpackJsonp([0],[
 	                data: { _id: $scope.guid, _value: val }
 	            });
 
-
-
-	            request
-	            .success(function (data, status, headers, config) {
+	            request.success(function (data, status, headers, config) {
 	                console.log(data);
-	                if (data.d == true)
-	                    def.resolve(data.d)
-	                else
-	                    def.reject();
-	            })
-	            .error(function (data, status, headers, config) { def.reject("Failed to get data"); });
+	                if (data.d == true) def.resolve(data.d);else def.reject();
+	            }).error(function (data, status, headers, config) {
+	                def.reject("Failed to get data");
+	            });
 
 	            return def.promise;
-
-
-
-
-
 	        }
 	    }
 	    CaptchaController.$inject = ["$scope", "$http", "$q"];
 
-
 	    return CaptchaController;
-	}
+	};
 
 /***/ },
 /* 298 */
